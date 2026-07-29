@@ -101,7 +101,187 @@ It must not yet be treated as:
 - an approved duplicate-management standard;
 - a complete inventory of CRM quality rules; or
 - a production reporting capability unless implementation, scheduling and ownership are confirmed.
+## Existing Plauti duplicate-check configuration
 
+Salesforce already uses Plauti Duplicate Check to identify and support the review of potential duplicate Person Accounts and Accounts.
+
+The current configuration is documented in the Confluence page:
+
+`Plauti Duplicate Check Configuration`
+
+The page includes configuration guidance for:
+
+- Person Account duplicate checking;
+- Account duplicate checking;
+- duplicate scenarios;
+- record-type applicability;
+- cross-object matching;
+- result fields;
+- merge rules;
+- predefined filters;
+- scheduled duplicate-check jobs;
+- security and permission settings; and
+- fields displayed to staff during duplicate review.
+
+Related historical Jira references include:
+
+- `PIP-2675` — Person Account duplicate-check configuration;
+- `PIP-3574` — Person Account result fields; and
+- `PIP-3560` — Account duplicate-check configuration.
+
+These Jira references are historical implementation references. Their current accessibility and status still need to be confirmed.
+
+### Current Plauti control signals
+
+The documented configuration suggests that:
+
+- duplicate detection already exists within Salesforce;
+- Person Accounts and Accounts may use different configurations;
+- matching scenarios can vary by object and record type;
+- cross-object comparisons may be enabled;
+- scheduled jobs may identify potential duplicates;
+- staff require specific permission sets to merge records;
+- merge authority is affected by Salesforce ownership and role hierarchy;
+- staff are shown selected fields to support duplicate decisions; and
+- human review remains part of the merge process.
+
+These are configuration signals from the documented setup.
+
+They do not by themselves confirm:
+
+- the configuration currently operating in production;
+- which scenarios are active;
+- the current matching thresholds;
+- whether jobs are running successfully;
+- the volume of results produced;
+- the false-positive rate;
+- how staff make final duplicate decisions;
+- whether merges are consistently completed; or
+- whether the configuration reflects current business requirements.
+
+### Plauti and Databricks relationship
+
+Plauti and Databricks have different roles.
+
+| Capability | Primary role |
+|---|---|
+| Plauti Duplicate Check | Detect and present potential duplicate records within Salesforce and support operational review or merging |
+| Databricks data-quality rules | Measure data-quality conditions, execute repeatable analytical checks, monitor trends and support root-cause investigation |
+| Salesforce validation rules | Prevent or constrain invalid data entry at the point of creation or update |
+| Operational duplicate-management process | Confirm identity, assess risk, decide whether records should be merged and record the outcome |
+
+Databricks should not automatically replace or reproduce Plauti logic.
+
+The business refinement activity must determine whether each Databricks duplicate rule is intended to:
+
+- independently monitor the same condition as Plauti;
+- validate whether Plauti is detecting expected records;
+- identify duplicate patterns not covered by Plauti;
+- measure potential duplicate volumes over time;
+- identify upstream sources of duplicate creation; or
+- provide an analytical control separate from operational matching.
+
+### Fields available for operational duplicate review
+
+The Plauti Account configuration documents result fields including:
+
+- first name;
+- last name;
+- account direct role;
+- primary email;
+- secondary email;
+- primary mobile;
+- account phone;
+- mailing address;
+- residential address;
+- account ID;
+- Golden Customer Opt Out;
+- ABN;
+- valid ABN indicator;
+- ACN;
+- valid ACN indicator;
+- trading name;
+- customer number;
+- last modified date; and
+- created-by identifier.
+
+The presence of a field in the Plauti results view does not mean that the field is:
+
+- part of a matching rule;
+- authoritative;
+- mandatory;
+- sufficiently reliable for identity confirmation; or
+- approved for use in a Databricks rule.
+
+The business must separately confirm whether each field is used for:
+
+1. matching;
+2. contextual review;
+3. merge decision support;
+4. reporting; or
+5. audit and traceability.
+
+### Plauti validation gaps
+
+The following evidence is still required:
+
+| ID | Validation question | Status |
+|---|---|---|
+| PLA-001 | Is the documented Plauti configuration still active in production? | Open |
+| PLA-002 | Which Person Account scenarios are currently enabled? | Open |
+| PLA-003 | Which Account and organisation scenarios are currently enabled? | Open |
+| PLA-004 | What matching fields, weights and thresholds are currently used? | Open |
+| PLA-005 | Which record types are included or excluded? | Open |
+| PLA-006 | Are cross-object rules currently active? | Open |
+| PLA-007 | How often do Plauti jobs run? | Open |
+| PLA-008 | How many potential duplicates are produced per run? | Open |
+| PLA-009 | How many potential duplicates are confirmed, rejected or left unresolved? | Open |
+| PLA-010 | What permissions and roles can merge records? | Partially documented |
+| PLA-011 | What evidence must staff review before merging? | Open |
+| PLA-012 | How are incorrect merges prevented, detected or reversed? | Open |
+| PLA-013 | Are merge decisions and outcomes traceable? | Open |
+| PLA-014 | How closely do proposed Databricks rules align with current Plauti scenarios? | Open |
+| PLA-015 | Which duplicate conditions are not currently covered by Plauti? | Open |
+
+### Rule-refinement implication
+
+Before approving Databricks duplicate rules, the business should compare:
+
+- the current Plauti scenario;
+- the proposed Databricks rule;
+- the business definition;
+- the fields used;
+- the matching threshold;
+- the eligible population;
+- the output grain;
+- the intended action;
+- the owner; and
+- the reason both controls are required.
+
+Use the following comparison structure:
+
+| Rule area | Plauti behaviour | Proposed Databricks behaviour | Difference | Business decision required |
+|---|---|---|---|---|
+| Exact email and exact name | To validate | To refine | Unknown | Confirm whether Databricks monitors or duplicates Plauti |
+| Exact email and similar name | To validate | To refine | Unknown | Confirm similarity threshold and review action |
+| Exact mobile and exact name | To validate | To refine | Unknown | Confirm shared-number exceptions |
+| Exact mobile and similar name | To validate | To refine | Unknown | Confirm threshold and false-positive tolerance |
+| Organisation ABN | To validate | To refine | Unknown | Confirm whether repeated ABN always indicates a duplicate |
+| Organisation ACN | To validate | To refine | Unknown | Confirm legal-entity and account-relationship rules |
+| Organisation name | To validate | To refine | Unknown | Confirm normalisation and branch handling |
+| Trading name | To validate | To refine | Unknown | Confirm whether shared trading names are acceptable |
+
+### Current interpretation
+
+Plauti provides evidence that duplicate detection and merge support are already part of the Salesforce operating environment.
+
+The next problem is therefore not simply:
+
+> How do we create duplicate rules?
+
+The more useful business question is:
+
+> How should Salesforce prevention controls, Plauti operational matching, Databricks analytical quality checks and human duplicate-resolution decisions work together as one controlled account-quality system?
 ## Current CRM rule-definition structure
 
 The current rule inventory records:
