@@ -7,187 +7,359 @@ Last updated: 29 July 2026
 
 ## Purpose
 
-This page supports the business refinement of Salesforce CRM data-quality rules before they are implemented, scheduled or reported through Databricks.
+This page supports the business refinement of CRM data-quality rules before they are implemented, scheduled or used as governed measures.
 
-The refinement activity will ensure each rule is:
+The refinement activity must align:
 
-- tied to a clear business question;
-- defined in plain language;
-- scoped to the correct customer population;
-- technically implementable;
-- safe to interpret;
-- owned by an appropriate business role;
-- prioritised according to customer, operational and risk impact; and
-- suitable for trend reporting or operational action.
+- Salesforce validation rules;
+- Plauti duplicate-detection scenarios;
+- Databricks analytical data-quality rules;
+- operational duplicate-review practices;
+- business ownership;
+- customer and employee impacts; and
+- governance requirements.
 
-The current rule inventory is a starting point.
+The objective is not to create more rules.
 
-It contains a mixture of:
+The objective is to create a smaller, clearer and decision-relevant set of rules that work together as one controlled account-quality system.
 
-- agreed business concerns;
-- draft rules;
-- active checks;
-- parked rules;
-- incomplete technical logic;
-- unresolved field questions;
-- proposed future checks; and
-- existing Salesforce validation rules.
+## Source material
 
-These must be refined before the outputs are treated as governed measures.
+### Salesforce data-quality rule inventory
+
+The current working rule inventory is maintained in Confluence:
+
+[Salesforce Data Quality Rules](https://jira-cityofmelbourne.atlassian.net/wiki/spaces/DP/pages/527597570/Salesforce+Data+Quality+Rules)
+
+This page remains the source of truth for:
+
+- current rule IDs;
+- business descriptions;
+- technical logic;
+- rule priorities;
+- active and parked status;
+- source fields;
+- contacts; and
+- ongoing rule changes.
+
+### Plauti duplicate-check configuration
+
+The existing Plauti configuration is documented in Confluence:
+
+`Plauti Duplicate Check Configuration`
+
+The documented configuration includes:
+
+- Person Account duplicate detection;
+- Account duplicate detection;
+- matching scenarios;
+- record-type applicability;
+- cross-object configuration;
+- duplicate result fields;
+- merge permissions;
+- scheduled jobs; and
+- fields presented to staff during duplicate review.
+
+The current production configuration still requires validation.
+
+### Current-state operational evidence
+
+Detailed current operational practice remains in:
+
+`jose-andr/cx-current-state-sop-mapping`
+
+That repository should be used to validate:
+
+- how potential duplicates are reviewed;
+- how merge decisions are made;
+- which exceptions occur;
+- what workarounds exist;
+- where decisions are recorded;
+- what risks staff manage; and
+- where individual knowledge is required.
+
+## Control-system model
+
+CRM account quality currently involves several different controls.
+
+| Control | Primary purpose |
+|---|---|
+| Salesforce validation rules | Prevent invalid or incomplete data from being entered |
+| Plauti Duplicate Check | Identify potential duplicate records and support operational review |
+| Databricks data-quality rules | Measure account-quality conditions, trends and recurring patterns |
+| Operational review | Confirm identity, assess risk and decide whether action is safe |
+| Governance and ownership | Define standards, accountabilities, thresholds and escalation |
+| Root-cause improvement | Reduce the processes and system behaviours creating defects |
+
+These controls should complement each other.
+
+They should not be treated as interchangeable.
 
 ## Refinement objective
 
-The immediate objective is to produce a prioritised set of business-approved CRM data-quality rules for Databricks.
+The immediate objective is to produce a prioritised set of business-approved CRM data-quality rules.
 
-Each refined rule should answer:
+Each refined rule must answer:
 
-1. What business problem does this rule detect?
-2. Which records should be assessed?
-3. What condition represents a failure?
-4. What condition is acceptable?
-5. What action should follow a failed result?
-6. Who owns the rule?
-7. How frequently should it run?
-8. How should the result be interpreted?
-9. What caveats apply?
-10. Is the result suitable for reporting, operational review or both?
+1. What business problem does the rule detect?
+2. Which control should own the issue?
+3. Which records are assessed?
+4. What condition represents failure?
+5. What valid exceptions apply?
+6. What action follows a failed result?
+7. Who owns the rule and its outcomes?
+8. How often should the rule run?
+9. How should the result be interpreted?
+10. What caveats or risks apply?
 
-## Business refinement principles
+## Rule types
 
-### Decision first
+Each rule should be assigned one primary type.
 
-Every rule must support a business decision or operational action.
+| Rule type | Purpose |
+|---|---|
+| Preventative | Stops invalid data being created or saved |
+| Detective | Identifies an issue after creation |
+| Monitoring | Tracks quality or trends over time |
+| Investigative | Supports root-cause analysis |
+| Operational | Creates a review or remediation action |
+| Governance | Tests compliance with an approved standard |
 
-Do not retain a rule only because the field is available.
+A single business issue may require more than one rule type.
 
-### Business meaning before SQL
+For example:
 
-Agree the business definition before finalising technical logic.
+- Salesforce may prevent an invalid format;
+- Plauti may identify a potential duplicate;
+- Databricks may monitor duplicate signals over time; and
+- an officer may determine whether two records should be merged.
 
-The technical query should implement the rule, not define it.
+## Required rule definition
 
-### Correct population
-
-Each rule must clearly state the records it applies to.
-
-Examples include:
-
-- active person accounts;
-- all person accounts;
-- active organisation accounts;
-- organisation accounts with an ABN;
-- accounts created during a reporting period;
-- accounts assessed by a specific matching rule.
-
-### Denominator safety
-
-Where a percentage or rate is required, define the denominator explicitly.
-
-The numerator and denominator must use:
-
-- the same population;
-- the same reporting period;
-- compatible filters;
-- the same record grain; and
-- the same rule version.
-
-### Potential is not confirmed
-
-Records identified by matching logic are potential duplicates.
-
-They must not be labelled as confirmed duplicates until reviewed through the agreed operational process.
-
-### Prevention and remediation
-
-Rules should distinguish between:
-
-- defects prevented by Salesforce validation;
-- defects detected after creation;
-- records requiring operational remediation; and
-- patterns indicating an upstream process or system issue.
-
-### Human in the loop
-
-Rules may identify possible issues.
-
-Humans remain responsible for decisions involving:
-
-- record merging;
-- identity confirmation;
-- sensitive data;
-- conflicting evidence;
-- customer relationships; and
-- privacy or records implications.
-
-## Required fields for each rule
+Each rule must include:
 
 | Field | Required definition |
 |---|---|
 | Rule ID | Stable identifier |
 | Rule name | Short business-readable name |
-| Business question | The decision question the rule supports |
-| Business description | Plain-English statement of expected data quality |
+| Business question | Decision or action supported |
+| Business description | Plain-English quality expectation |
+| Rule type | Preventative, detective, monitoring, investigative, operational or governance |
 | Quality dimension | Completeness, validity, uniqueness, consistency, accuracy or timeliness |
-| Customer/account type | Person, organisation or other defined population |
+| Account type | Person, organisation or another defined population |
 | Source | Salesforce or relevant source domain |
-| Dataset | Databricks table or view |
-| Grain | One row per account, contact, duplicate group or other unit |
-| Attributes | Fields assessed by the rule |
-| Population filter | Records included in the assessment |
-| Failure condition | Logic that causes the record to fail |
-| Exclusions | Records intentionally excluded |
-| Numerator | Count of failing records or groups |
-| Denominator | Eligible population where a rate is required |
-| Output unit | Records, accounts, groups, percentage or rate |
-| Frequency | Daily, weekly, monthly or other agreed schedule |
-| Priority | Business priority |
+| Dataset | Databricks table or view where applicable |
+| Grain | Account, record, pair, group or another unit |
+| Attributes | Fields assessed |
+| Population filter | Eligible records |
+| Failure condition | Logic that causes failure |
+| Valid exceptions | Accepted conditions that should not fail |
+| Exclusions | Records intentionally omitted |
+| Numerator | Failing records or groups |
+| Denominator | Eligible population where a rate is used |
+| Output unit | Records, pairs, groups, percentage or rate |
+| Frequency | Execution schedule |
+| Priority | Business importance |
 | Severity | Consequence of failure |
-| Business owner | Role accountable for the rule |
-| Operational owner | Role responsible for reviewing or acting on results |
-| Technical owner | Role responsible for implementation and maintenance |
+| Business owner | Accountable for the rule |
+| Operational owner | Responsible for action |
+| Technical owner | Responsible for implementation |
 | Action on failure | Review, correct, monitor, escalate or investigate |
-| Target or threshold | Expected tolerance, where agreed |
+| Threshold | Tolerance where agreed |
 | Caveats | Known limitations |
-| Definition status | Current refinement status |
-| Execution status | Current implementation status |
+| Definition status | Business refinement status |
+| Execution status | Technical implementation status |
 
-## Quality dimensions
+## Rule statuses
 
-Use one primary quality dimension for each rule.
+### Definition status
 
-| Dimension | Meaning |
+| Status | Meaning |
 |---|---|
-| Completeness | Required information is populated |
-| Validity | Information follows an agreed format or domain rule |
-| Uniqueness | Records are not duplicated according to the stated rule |
-| Consistency | Related fields or records do not conflict |
-| Accuracy | Information reflects an authoritative or verified source |
-| Timeliness | Information is current or updated within the required period |
+| Proposed | Initial business question or idea |
+| In refinement | Business meaning, scope or ownership is incomplete |
+| Ready for implementation | Business definition is complete and approved |
+| Parked | Not progressing due to dependency or low value |
+| Rejected | Reviewed and not required |
+| Superseded | Replaced by another rule |
 
-A rule may relate to more than one dimension, but one should be nominated as primary.
+### Execution status
 
-## Rule refinement workflow
+| Status | Meaning |
+|---|---|
+| Not started | No implementation work has begun |
+| In development | Logic is being created |
+| Implemented | Logic exists but may not be scheduled |
+| Scheduled | Rule runs at an agreed frequency |
+| Results under review | Outputs exist but are not governed |
+| Validated | Rule and outputs are approved for the stated use |
+| Failed | Rule cannot currently execute reliably |
+| Retired | Rule is no longer active |
 
-### Step 1 — Group the current rules
+## Initial refinement scope
 
-Group existing rules into:
+The first refinement cycle should focus on Customer Account Management rules only.
 
-- person-account completeness;
-- person-account validity;
-- person-account duplicate signals;
+### Included
+
+- Person Account contact completeness;
+- Person Account field validity;
+- potential Person Account duplicates;
 - organisation-account completeness;
-- organisation-account validity;
-- organisation-account duplicate signals;
-- cross-field consistency;
-- external verification;
-- case and work-order quality; and
-- existing Salesforce preventative controls.
+- organisation identifier validity;
+- potential organisation duplicates;
+- matching and merge controls; and
+- account-quality monitoring.
 
-Customer Account Management should initially prioritise account and customer-identity rules.
+### Parked for separate review
 
-Case and work-order rules should remain separate unless they directly support the Customer Account Management problem.
+- case-description quality;
+- case subject requirements;
+- work-order subject requirements;
+- knowledge-article attachment;
+- call-recording attachment;
+- location-description quality;
+- work-order-to-enquiry matching; and
+- other service-specific case controls.
 
-### Step 2 — Confirm the business question
+These may be important CRM quality issues, but they are not all Customer Account Management rules.
+
+## Initial rule groups
+
+### 1. Person Account contact completeness
+
+Current rule signals include:
+
+- no primary email;
+- secondary email populated while primary email is blank;
+- no primary mobile;
+- secondary phone populated while primary mobile is blank; and
+- no usable contact method.
+
+Business decisions required:
+
+- Is an email mandatory?
+- Is a mobile number mandatory?
+- Is one valid contact method sufficient?
+- Which account types require particular contact methods?
+- What valid exceptions apply?
+- Should inactive accounts be included?
+- Should secondary values be promoted or reported only?
+- What action follows a failed result?
+
+### 2. Person Account field validity
+
+Current rule signals include:
+
+- mobile-number length;
+- unexpected name characters;
+- future birth dates; and
+- incomplete address information.
+
+Business decisions required:
+
+- Are international phone numbers supported?
+- Which characters are valid in names?
+- How are apostrophes, hyphens, spaces and diacritics handled?
+- When is an address mandatory?
+- Which defects are already prevented in Salesforce?
+- Should historical records be assessed against current standards?
+
+### 3. Potential Person Account duplicates
+
+Current rule signals include combinations of:
+
+- exact email;
+- secondary email;
+- exact mobile;
+- phone;
+- exact name; and
+- greater than 90% name similarity.
+
+Business decisions required:
+
+- Is the output a record, pair or duplicate group?
+- Which matching fields provide sufficient confidence?
+- Is 90% name similarity appropriate?
+- How are common names handled?
+- How are shared contact details handled?
+- How are families, representatives and carers handled?
+- Which results require human review?
+- What makes a duplicate confirmed?
+- How do proposed Databricks rules differ from Plauti scenarios?
+
+### 4. Organisation-account completeness
+
+Current rule signals include:
+
+- missing ABN;
+- missing ACN;
+- missing organisation name; and
+- missing trading name where relevant.
+
+Business decisions required:
+
+- Which organisation types require an ABN?
+- Which require an ACN?
+- Can one identifier be sufficient?
+- Are inactive organisations included?
+- Are branches, departments or informal groups treated differently?
+- What action follows missing information?
+
+### 5. Organisation-account validity
+
+Current rule signals include:
+
+- ABN length;
+- ACN length;
+- ACN-to-ABN consistency; and
+- external verification.
+
+Business decisions required:
+
+- Which source is authoritative?
+- Is external verification approved?
+- How often should verification occur?
+- What happens when Salesforce and the source differ?
+- Are format rules enough without external verification?
+- Who owns correction?
+
+### 6. Potential organisation duplicates
+
+Current rule signals include repeated:
+
+- ABN;
+- ACN;
+- organisation name; and
+- trading name.
+
+Business decisions required:
+
+- Does a repeated ABN always mean a duplicate?
+- Can one legal entity have multiple valid accounts?
+- Can multiple entities share a trading name?
+- How should names be normalised?
+- How are branches and subsidiaries represented?
+- When should accounts be related rather than merged?
+
+## Plauti-to-Databricks comparison
+
+Each duplicate rule must be compared with current Plauti behaviour.
+
+| Rule area | Plauti configuration | Databricks purpose | Business decision |
+|---|---|---|---|
+| Exact email and exact name | To validate | Monitor or independently detect | Confirm whether duplicate logic is intentionally repeated |
+| Exact email and similar name | To validate | Measure potential duplicates | Confirm similarity threshold |
+| Exact mobile and exact name | To validate | Monitor potential duplicate patterns | Confirm shared-number exceptions |
+| Exact mobile and similar name | To validate | Investigate possible duplicates | Confirm acceptable false positives |
+| Repeated ABN | To validate | Monitor organisation duplicate signals | Confirm whether repeated ABN is always invalid |
+| Repeated ACN | To validate | Monitor organisation duplicate signals | Confirm legal-entity rules |
+| Repeated organisation name | To validate | Investigate possible duplicates | Confirm normalisation |
+| Repeated trading name | To validate | Investigate possible duplicates | Confirm acceptable shared names |
+
+## Refinement workflow
+
+### Step 1 — Confirm the business question
 
 Rewrite each rule as a decision-relevant question.
 
@@ -197,9 +369,21 @@ Current wording:
 
 > How many person accounts do not contain an email?
 
-Refined business question:
+Refined wording:
 
-> What proportion of active person accounts do not have a primary email address, and does this limit account communication or self-service?
+> What proportion of active Person Accounts have no usable email address, and which customer interactions are affected?
+
+### Step 2 — Identify the correct control
+
+Decide whether the issue should be handled through:
+
+- Salesforce prevention;
+- Plauti detection;
+- Databricks monitoring;
+- operational review;
+- governance;
+- root-cause improvement; or
+- a combination.
 
 ### Step 3 — Confirm the population
 
@@ -208,26 +392,33 @@ Agree:
 - account type;
 - active or inactive status;
 - record type;
-- date range;
-- required exclusions;
-- test or system records;
-- deceased customers;
+- reporting period;
+- exclusions;
+- test records;
 - historical records; and
-- records subject to legal or operational exceptions.
+- approved exceptions.
 
-### Step 4 — Confirm the business rule
+### Step 4 — Confirm the grain
 
-State what good data looks like.
+State whether the rule produces:
+
+- one row per account;
+- one row per failed field;
+- one row per matched pair;
+- one row per duplicate group; or
+- another clearly defined unit.
+
+### Step 5 — Confirm good data
+
+State the expected business condition in plain language.
 
 Example:
 
-> An active person account should contain at least one usable contact method unless an approved exception applies.
+> An active Person Account should contain at least one usable contact method unless an approved exception applies.
 
-This may be more appropriate than treating every missing email as a defect.
+### Step 6 — Confirm technical logic
 
-### Step 5 — Confirm the technical rule
-
-Work with the technical owner to confirm:
+Confirm:
 
 - source table or view;
 - field names;
@@ -235,262 +426,161 @@ Work with the technical owner to confirm:
 - null handling;
 - whitespace handling;
 - case sensitivity;
-- formatting;
-- matching thresholds;
-- duplicate grouping logic;
-- exclusions; and
-- expected output.
+- normalisation;
+- similarity thresholds;
+- grouping logic; and
+- exclusions.
 
-### Step 6 — Confirm actionability
+### Step 7 — Confirm actionability
 
-For every failed result, determine:
+For each failure, decide whether the response is:
 
-- whether a person should review it;
-- whether it can be corrected safely;
-- whether it should be monitored only;
-- whether it indicates an upstream defect;
-- whether it should be escalated; and
-- whether the result is useful enough to justify running the rule.
+- correct the record;
+- review the potential duplicate;
+- monitor the trend;
+- investigate the source;
+- escalate a risk;
+- change an upstream process; or
+- take no action.
 
-### Step 7 — Confirm ownership
+Do not implement rules that create results with no owner or action.
 
-Assign:
-
-- business owner;
-- operational action owner;
-- technical implementation owner; and
-- governance or escalation owner where required.
-
-Do not activate a rule without an owner for its results.
-
-### Step 8 — Set priority
-
-Prioritise rules using:
-
-- customer impact;
-- privacy or security risk;
-- operational effort;
-- regulatory or records impact;
-- effect on connected interactions;
-- volume;
-- recurrence;
-- ease of remediation; and
-- readiness for implementation.
-
-### Step 9 — Test the rule
-
-Test against a controlled sample or approved aggregate output.
+### Step 8 — Assign ownership
 
 Confirm:
 
-- the result matches the business definition;
-- expected records are included;
-- false positives are understood;
-- false negatives are considered;
-- the rule can be explained;
-- the output unit is clear; and
-- the result leads to an action or decision.
+- business owner;
+- operational action owner;
+- technical owner;
+- governance owner where required; and
+- escalation pathway.
 
-### Step 10 — Approve for implementation
+### Step 9 — Test and review
 
-A rule is ready for Databricks when:
+Test the rule using safe data or approved aggregate outputs.
 
-- the business question is agreed;
-- population and exclusions are explicit;
-- the failure condition is testable;
-- ownership is assigned;
-- caveats are documented;
-- the expected action is clear;
-- the output unit is defined; and
-- the rule has been approved by the relevant business owner.
+Review:
 
-## Initial rule groups for refinement
+- expected matches;
+- false positives;
+- possible false negatives;
+- edge cases;
+- explainability;
+- output grain;
+- operational effort; and
+- privacy implications.
 
-### Group 1 — Person-account contact completeness
+### Step 10 — Approve or park
 
-Current rules include:
+The business owner should decide whether the rule is:
 
-- no primary email;
-- secondary email populated but primary email blank;
-- no primary mobile;
-- secondary phone populated but primary mobile blank; and
-- minimum contact information missing.
+- ready for implementation;
+- returned for refinement;
+- parked;
+- rejected; or
+- superseded.
 
-Questions to resolve:
+## Metric-safety rules
 
-- Is an email mandatory for every person account?
-- Is a mobile number mandatory for every person account?
-- Is one valid contact method sufficient?
-- Are there approved exceptions?
-- Should secondary fields be promoted to primary?
-- Are inactive accounts included?
-- What customer or service impact follows from missing details?
+A Databricks output is not automatically a governed measure.
 
-### Group 2 — Person-account field validity
+Before use, record:
 
-Current rules include:
+- business question;
+- rule version;
+- source;
+- dataset;
+- grain;
+- population;
+- numerator;
+- denominator;
+- exclusions;
+- reporting period;
+- execution date;
+- result;
+- caveats;
+- validation owner; and
+- permitted use.
 
-- mobile number length;
-- special characters in names;
-- future birth date; and
-- incomplete address information.
+Potential duplicate matches must not be described as confirmed duplicates.
 
-Questions to resolve:
+Flagged records must not be mixed with matched pairs or duplicate groups.
 
-- Are international mobile numbers permitted?
-- Which characters are valid in personal names?
-- How should hyphens, apostrophes, spaces and diacritics be handled?
-- Is address completeness required for every customer?
-- Which validation rules already prevent these defects in Salesforce?
-- Are historical records expected to comply?
+Rules using different populations or thresholds must not be combined without explicit caveats.
 
-### Group 3 — Potential person-account duplicates
+## Definition of ready
 
-Current rules include combinations of:
+A rule is ready for technical implementation when:
 
-- exact email;
-- secondary email;
-- exact mobile;
-- phone;
-- exact name; and
-- greater than 90% name similarity.
-
-Questions to resolve:
-
-- What is the unit of output: records, pairs or duplicate groups?
-- Which fields provide sufficient matching confidence?
-- Is 90% name similarity appropriate?
-- How are common names handled?
-- How are shared email addresses or phone numbers handled?
-- How are families, carers and representatives handled?
-- Which matches require human review?
-- What makes a duplicate confirmed rather than potential?
-- Should each matching scenario have a separate rule ID?
-
-### Group 4 — Organisation-account completeness and validity
-
-Current rules include:
-
-- missing ABN;
-- missing ACN;
-- ABN length;
-- proposed ACN length;
-- ACN comparison with the final nine digits of ABN; and
-- proposed external verification.
-
-Questions to resolve:
-
-- Which organisation types require an ABN?
-- Which organisation types require an ACN?
-- Can an account legitimately have one but not the other?
-- Are inactive organisations included?
-- Which external source is authoritative?
-- What should happen when Salesforce and the authoritative source differ?
-- Is external verification technically and legally approved?
-
-### Group 5 — Potential organisation duplicates
-
-Current rules include repeated:
-
-- ABN;
-- ACN;
-- organisation name; and
-- trading name.
-
-Questions to resolve:
-
-- Does the same ABN always indicate a duplicate?
-- Can one legal entity have multiple valid account records?
-- Can multiple entities share a trading name?
-- Should names be normalised before comparison?
-- How should branches, subsidiaries and departments be represented?
-- What relationship model is required instead of merging some records?
-
-## Initial business review order
-
-Refine the rules in this order:
-
-1. person-account contact completeness;
-2. exact person-account email duplicates;
-3. exact person-account mobile duplicates;
-4. organisation ABN and ACN completeness;
-5. organisation ABN and ACN duplicates;
-6. person-account fuzzy-name matching;
-7. organisation-name and trading-name duplicates;
-8. external ABN and ACN verification;
-9. remaining format and cross-field consistency rules.
-
-This order begins with rules that are easier to explain and test before moving into higher-risk fuzzy matching and external verification.
-
-## Rule-refinement register
-
-| Rule group | Business owner | Technical support | Status | Next action |
-|---|---|---|---|---|
-| Person-account contact completeness | To confirm | Databricks / CRM | Open | Agree minimum valid contact requirement |
-| Person-account field validity | To confirm | Databricks / CRM | Open | Confirm accepted phone and name formats |
-| Person-account duplicate signals | To confirm | Databricks / CRM | Open | Define potential versus confirmed duplicate |
-| Organisation-account completeness | To confirm | Databricks / CRM | Open | Confirm when ABN and ACN are required |
-| Organisation-account validity | To confirm | Databricks / CRM | Open | Confirm format and external verification rules |
-| Organisation-account duplicate signals | To confirm | Databricks / CRM | Open | Confirm legal-entity and relationship rules |
-| Case and work-order rules | Outside initial account focus | Databricks / CRM | Parked | Review separately with service owners |
-
-## Definition-of-ready checklist
-
-A rule is ready for technical implementation when all answers are yes.
-
-| Check | Yes / No |
+| Check | Complete |
 |---|---|
-| Is the business question clear? | |
-| Is the rule linked to a decision or action? | |
-| Is the customer or account population explicit? | |
-| Is the record grain explicit? | |
-| Is the failure condition agreed? | |
-| Are exclusions documented? | |
-| Are numerator and denominator defined where required? | |
-| Is the output unit clear? | |
-| Is the business owner assigned? | |
-| Is the action owner assigned? | |
-| Are privacy and governance implications understood? | |
-| Have false positives and false negatives been considered? | |
-| Are caveats documented? | |
-| Has the rule been tested on safe data or aggregate outputs? | |
-| Has the business owner approved implementation? | |
+| Business question is clear | |
+| Control purpose is agreed | |
+| Account population is explicit | |
+| Grain is explicit | |
+| Failure condition is agreed | |
+| Valid exceptions are documented | |
+| Exclusions are documented | |
+| Numerator and denominator are defined | |
+| Output unit is clear | |
+| Business owner is assigned | |
+| Operational owner is assigned | |
+| Technical owner is assigned | |
+| Action on failure is clear | |
+| Privacy and governance implications are understood | |
+| False positives have been considered | |
+| False negatives have been considered | |
+| Rule has been tested | |
+| Business owner has approved implementation | |
 
-## Outputs from the refinement activity
+## First refinement workshop
 
-The business refinement should produce:
+The first workshop should focus on:
 
-- a prioritised CRM data-quality rule register;
-- agreed business definitions;
-- confirmed populations and exclusions;
-- approved rule ownership;
-- clear technical implementation requirements;
-- agreed execution frequency;
-- safe measure definitions;
-- operational response expectations;
-- a list of parked or rejected rules; and
-- a decision on which rules enter the first Databricks implementation cycle.
+1. minimum valid contact information for active Person Accounts;
+2. exact email duplicate signals;
+3. exact mobile duplicate signals;
+4. ABN and ACN completeness;
+5. ABN and ACN duplicate signals; and
+6. potential versus confirmed duplicates.
+
+Suggested participants:
+
+- Customer Focus and Strategy;
+- CRM Product Owner;
+- Customer Data and Systems Support Officer;
+- Databricks or Data Governance technical support;
+- Privacy or Data Governance representative where required; and
+- operational users who review or merge duplicate records.
+
+## Required workshop outputs
+
+The session should produce:
+
+- refined business definitions;
+- agreed populations;
+- agreed grain;
+- valid exceptions;
+- ownership;
+- intended control type;
+- action on failure;
+- implementation priority;
+- Plauti alignment;
+- unresolved questions; and
+- a decision for each rule.
 
 ## Current decision
 
-The business will refine and approve the CRM data-quality rules before treating Databricks outputs as governed measures.
+The business will refine and approve CRM data-quality rules before Databricks outputs are treated as governed evidence.
 
-The first refinement session should focus on:
+Databricks rules must be designed in relation to:
 
-1. minimum contact information for active person accounts;
-2. exact email duplicate rules;
-3. exact mobile duplicate rules;
-4. ABN and ACN requirements; and
-5. the distinction between potential and confirmed duplicates.
+- Salesforce preventative controls;
+- Plauti duplicate detection;
+- operational human review;
+- governance requirements; and
+- root-cause improvement.
 
 ## Next action
 
-Schedule a business rule-refinement session with:
-
-- Customer Focus and Strategy;
-- CRM Product Ownership;
-- Customer Data and Systems Support;
-- Databricks or Data Governance technical support; and
-- Privacy or Data Governance representatives where required.
-
-Use the session to complete the Definition-of-ready checklist for the first five rule areas.
+Prepare the first six priority rules using the Definition of Ready checklist and bring them to the business refinement workshop.
