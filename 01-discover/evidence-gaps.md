@@ -52,6 +52,34 @@ Evidence collection should follow these rules:
 
 CRM data-quality rules are currently being developed for checking Salesforce data through Databricks.
 
+The current working rule inventory is maintained in Confluence:
+
+[Salesforce Data Quality Rules](https://jira-cityofmelbourne.atlassian.net/wiki/spaces/DP/pages/527597570/Salesforce+Data+Quality+Rules)
+
+Confluence remains the source of truth for:
+
+- the current rule inventory;
+- rule IDs;
+- business descriptions;
+- technical logic;
+- active and parked status;
+- priorities;
+- source fields;
+- rule contacts; and
+- ongoing rule refinements.
+
+This repository should record:
+
+- decision-relevant summaries;
+- evidence gaps;
+- rule-refinement outcomes;
+- caveats;
+- ownership decisions;
+- implementation readiness; and
+- implications for Customer Account Management.
+
+It should not duplicate the full Confluence rule table unless a controlled snapshot is required for a specific decision.
+
 This work may provide:
 
 - repeatable CRM account-quality checks;
