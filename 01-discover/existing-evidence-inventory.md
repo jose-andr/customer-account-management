@@ -405,16 +405,186 @@ Use:
 
 ## Next action
 
-Create the current-state evidence synthesis by extracting the smallest set of decision-relevant findings from:
+## Additional evidence — Databricks customer data-quality pilot
 
-`jose-andr/cx-current-state-sop-mapping`
+### Evidence summary
 
-The synthesis should identify:
+| Field | Detail |
+|---|---|
+| Evidence item | Initial customer data-quality pilot |
+| Evidence type | Exploratory analytical output |
+| Source platform | Databricks data-quality framework |
+| Presentation layer | Power BI Report Server |
+| Source tables shown | `vwaccount`, `vwcontact` |
+| Test date shown | 19 June 2026 |
+| Validation status | Partially validated |
+| Governed metric status | Not ready |
+| Current use | Business-rule refinement input |
+| Repository summary | `databricks-customer-data-quality-pilot-input.md` |
 
-- validated current practices;
-- reported pain points;
-- recurring workarounds;
-- ownership gaps;
-- transformation constraints;
-- unresolved evidence gaps; and
-- implications for the Customer Account Management problem definition.
+### What the evidence contains
+
+The pilot includes technical checks across selected Account and Contact attributes covering:
+
+- completeness;
+- format or reference validity;
+- uniqueness;
+- similarity or potential-duplicate detection; and
+- an aggregate rule-pass result.
+
+Visible attributes and rule themes include:
+
+- email completeness and format;
+- mobile completeness and format;
+- email and mobile similarity;
+- ABN completeness or validity;
+- ACN completeness or validity;
+- repeated ABN;
+- repeated ACN;
+- name validity;
+- name uniqueness;
+- trading-name uniqueness;
+- secondary email checks; and
+- customer-number uniqueness.
+
+### Preliminary dashboard results
+
+The screenshots reviewed showed:
+
+| Measure | Reported result |
+|---|---:|
+| Aggregate rule-pass rate | Approximately 95.9% |
+| Completeness | Approximately 99.9% |
+| Validity | Approximately 94.1% |
+| Uniqueness | Approximately 95.2% |
+| ABN validity | Approximately 81.80% |
+| ACN validity | Approximately 56.59% |
+| Email uniqueness | Approximately 86.02% |
+| ABN uniqueness | Approximately 95.71% |
+| ACN uniqueness | Approximately 90.77% |
+
+These results remain exploratory.
+
+They must not be interpreted as governed customer data-quality, accuracy or confirmed duplicate rates.
+
+### Evidence value
+
+The pilot provides useful evidence that:
+
+- technical customer data-quality checks can be executed;
+- Account and Contact attributes are included;
+- selected rule failures are visible;
+- duplicate and similarity diagnostics are already being tested;
+- potential material quality issues exist;
+- rule definitions require stronger business input;
+- eligible populations require refinement;
+- numerator and denominator definitions require validation;
+- rule taxonomy requires review; and
+- operational ownership and response pathways remain unresolved.
+
+### Evidence limitations
+
+The pilot does not yet confirm:
+
+- what `records tested` represents;
+- whether the grain is account, contact, attribute or rule execution;
+- why different dashboard views show different tested totals;
+- whether blanks are included in validity and uniqueness results;
+- whether Account and Contact populations can be combined;
+- whether rule results are weighted equally;
+- whether repeated values are counted as records, groups or pairs;
+- whether similarity thresholds align with business meaning;
+- whether Salesforce and Plauti controls overlap with the Databricks rules;
+- whether valid exceptions are excluded;
+- whether inactive, merged or superseded records are included;
+- whether failed records can be acted on safely; or
+- whether any measure is suitable for executive reporting.
+
+### Page-total discrepancy
+
+The reviewed dashboard views showed different tested totals:
+
+| Dashboard view | Records tested |
+|---|---:|
+| Full Records | 8,929,330 |
+| All Attributes | 8,521,688 |
+| Difference | 407,642 |
+
+The difference requires technical reconciliation before the dashboard is used as a governed reporting source.
+
+### Permitted use
+
+The evidence may currently be used to:
+
+- refine business-rule definitions;
+- prepare workshops;
+- identify calculation and denominator questions;
+- compare technical logic with business intent;
+- validate source fields;
+- improve rule names and taxonomy;
+- prioritise further investigation; and
+- support decisions about Salesforce, Plauti and Databricks responsibilities.
+
+The evidence must not currently be used to:
+
+- claim that customer data quality is approximately 95.9%;
+- report confirmed duplicate volumes;
+- compare business units or teams;
+- establish quality targets;
+- approve automated record changes;
+- evaluate staff performance;
+- trigger customer-level decisions; or
+- provide governed executive measures.
+
+### Related priority rules
+
+This evidence informs:
+
+- `CAM-DQ-001 — Minimum valid contact method`;
+- `CAM-DQ-002 — Exact email duplicate signal`;
+- `CAM-DQ-003 — Exact mobile duplicate signal`;
+- `CAM-DQ-004 — ABN completeness`;
+- `CAM-DQ-005 — ACN completeness`;
+- `CAM-DQ-006 — Repeated ABN`; and
+- `CAM-DQ-007 — Repeated ACN`.
+
+### Source boundary
+
+The source screenshots and record-level data remain in approved organisational systems.
+
+The repository should retain only:
+
+- aggregate observations;
+- rule names;
+- field names;
+- interpretation;
+- caveats;
+- refinement questions;
+- source references; and
+- decision logic.
+
+Do not store:
+
+- customer records;
+- email addresses;
+- telephone numbers;
+- ABNs or ACNs tied to identifiable records;
+- Salesforce record identifiers;
+- failed-record extracts;
+- unredacted screenshots;
+- credentials; or
+- sensitive operational data.
+
+### Current evidence assessment
+
+| Assessment | Status |
+|---|---|
+| Evidence available | Yes |
+| Technical execution visible | Yes |
+| Technical logic fully validated | No |
+| Business definitions approved | No |
+| Population and grain confirmed | No |
+| Dashboard totals reconciled | No |
+| Operational response agreed | No |
+| Governed measures approved | No |
+| Slide-safe wording available | No |
