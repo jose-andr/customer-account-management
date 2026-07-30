@@ -1,0 +1,45 @@
+image: alpine:3.20
+
+clone:
+  depth: full
+
+pipelines:
+  custom:
+    check-confluence-variables:
+      - step:
+          name: Check Confluence variables
+          script:
+            - |
+              missing=0
+
+              for variable_name in \
+                CONFLUENCE_BASE_URL \
+                CONFLUENCE_SPACE_ID \
+                CONFLUENCE_PARENT_PAGE_ID \
+                CONFLUENCE_USER_EMAIL \
+                CONFLUENCE_API_TOKEN
+              do
+                eval "variable_value=\${${variable_name}:-}"
+
+                if [ -n "$variable_value" ]; then
+                  echo "${variable_name}: available"
+                else
+                  echo "${variable_name}: MISSING"
+                  missing=1
+                fi
+              done
+
+              if [ "$missing" -ne 0 ]; then
+                echo "One or more required variables are unavailable."
+                exit 1
+              fi
+
+              echo "All required Confluence variables are available."
+
+    publish-confluence-test:
+      - step:
+          name: Publish Customer Account Management test page
+          script:
+            - apk add --no-cache python3 py3-pip git
+            - python3 -m pip install --no-cache-dir --break-system-packages markdown requests pyyaml
+            - python3 scripts/publish-confluence-test.py
