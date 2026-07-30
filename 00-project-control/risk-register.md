@@ -330,4 +330,60 @@ These risks should be reduced before the workstream moves from rule refinement i
 
 ## Next action
 
-Review the critical and high-rated risks during the first CRM data-quality refinement workshop and assign owners for all open mitigation actions.
+## Additional risks — Databricks customer data-quality pilot
+
+| Risk ID | Risk | Cause | Consequence | Likelihood | Impact | Rating | Treatment | Owner | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| CAM-RISK-012 | Aggregate pilot score is treated as a governed customer data-quality measure | The dashboard presents an approximate 95.9% pass rate before grain, weighting, populations and page totals are reconciled | Leaders may overestimate the reliability, accuracy or completeness of customer data and make poorly informed decisions | Possible | High | High | Label the score as exploratory; prohibit governed reporting until the calculation model is reconciled and approved | Business rule owner and analytics owner — to confirm | Open |
+| CAM-RISK-013 | Dashboard totals cannot be reconciled | The Full Records and All Attributes views show different totals for records tested | Confidence in rule results and overall reporting may be reduced | Likely | Medium | High | Confirm page filters, source tables, refresh timing, exclusions, failed executions and aggregation logic | Databricks and Power BI technical owners — to confirm | Open |
+| CAM-RISK-014 | Rule-execution counts are misrepresented as customer-record counts | The meaning of `records tested` has not been confirmed | Stakeholders may interpret repeated attribute or rule evaluations as unique accounts or contacts | Possible | High | High | Document the grain for every rule and dashboard view; rename measures where necessary | Databricks technical owner — to confirm | Open |
+| CAM-RISK-015 | Account and Contact results are combined using incompatible grains | The pilot includes rules from `vwaccount` and `vwcontact` in the same reporting structure | Aggregate results may be mathematically valid but decision-unsafe | Possible | High | High | Keep Account and Contact populations separate unless an approved relationship and aggregation method exists | Analytics owner and data steward — to confirm | Open |
+| CAM-RISK-016 | Completeness is interpreted as usable customer contact coverage | Email and mobile completeness results may test only whether a field is populated | The organisation may assume customers can be contacted when details are invalid, outdated, shared or unusable | Likely | High | High | Define minimum valid contact method separately from field completeness; report format, currency and exceptions separately | Business rule owner — to confirm | Open |
+| CAM-RISK-017 | Similarity and duplicate signals are classified as validity failures | `is_similar_duplicate` rules appear under the validity dimension | Potential matches may be treated as invalid records or confirmed duplicates | Possible | High | High | Refine the taxonomy to separate validity, uniqueness, similarity and duplicate signals | Business rule owner and data governance — to confirm | Open |
+| CAM-RISK-018 | ABN and ACN failure rates use unsafe populations | Organisation types not expected to hold an ABN or ACN may enter the denominator | Quality failures may be overstated and remediation may target valid exceptions | Likely | High | High | Define eligible legal entity types, exclusions and unclassifiable-record treatment before governed reporting | Business rule owner and data steward — to confirm | Open |
+| CAM-RISK-019 | Repeated contact or identifier values are treated as confirmed duplicates | Shared email, mobile, ABN or ACN values may be interpreted as proof of duplicate identity | Legitimate accounts may be merged, altered or incorrectly prioritised for remediation | Possible | Severe | Extreme | Use duplicate-signal terminology; require human review and controlled merge authority | Operational owner and merge authority — to confirm | Open |
+| CAM-RISK-020 | Databricks and Plauti produce conflicting duplicate outputs | Duplicate logic, thresholds and populations may differ across tools | Staff may receive competing queues, duplicate work or inconsistent decisions | Possible | High | High | Compare active Plauti scenarios with Databricks rules and assign a clear purpose to each tool | CRM Product Owner, Plauti owner and Databricks owner — to confirm | Open |
+| CAM-RISK-021 | Rules are approved before an operational response exists | Technical outputs become available before ownership, capacity and remediation pathways are agreed | Failure lists may create unmanaged work, inappropriate customer contact or unsafe record changes | Likely | High | High | Keep rules diagnostic until owners, actions, exceptions, escalation and capacity are agreed | Business and operational owners — to confirm | Open |
+| CAM-RISK-022 | Rule changes cannot be compared over time | Rule versions, thresholds, exclusions and populations are not visibly versioned | Trend analysis may compare incompatible results and create false improvement or decline signals | Possible | High | High | Require rule ID, version, execution date, population, threshold and source snapshot for every governed run | Databricks technical owner and data governance — to confirm | Open |
+| CAM-RISK-023 | Pilot screenshots or failed-record data are copied into GitHub | Teams may use the repository to share diagnostic evidence | Customer or sensitive operational data may be exposed outside approved systems | Unlikely | Severe | High | Store only aggregate summaries, field names, caveats and decision logic; keep record-level evidence in approved systems | Repository owner | Open |
+
+## Pilot risk controls
+
+The following controls apply across all pilot-related risks:
+
+- keep all pilot results in exploratory status;
+- reconcile the calculation model before reporting approval;
+- record source, grain, population, numerator and denominator for every measure;
+- distinguish completeness, validity, verification, uniqueness and duplicate signals;
+- require business definition before technical approval;
+- require human review before duplicate confirmation or merge;
+- separate Salesforce, Plauti, Databricks and Power BI responsibilities;
+- assign operational ownership before creating remediation queues;
+- version every governed rule;
+- preserve privacy and source-system boundaries; and
+- record approved permitted use for each rule.
+
+## Escalation triggers
+
+Escalate the relevant risk when:
+
+- the 95.9% aggregate result is proposed for executive reporting;
+- dashboard totals cannot be reconciled;
+- a rule is moved to governed status without an agreed population or denominator;
+- a duplicate signal is used to trigger an automated merge;
+- Account and Contact results are combined without an approved calculation model;
+- operational failure lists are produced without an owner;
+- Databricks and Plauti results materially conflict;
+- customer-level extracts are proposed for storage in GitHub; or
+- a rule changes without a recorded version.
+
+## Related pages
+
+- `../01-discover/databricks-customer-data-quality-pilot-input.md`
+- `../01-discover/evidence-gaps.md`
+- `../02-define/crm-data-quality-rule-register.md`
+- `../02-define/crm-data-quality-rule-refinement-index.md`
+- `../02-define/crm-data-quality-rule-refinement-workshop.md`
+- `../02-define/rules/`
+- `status-and-validation-model.md`
+- `../06-decisions/decision-log.md`
