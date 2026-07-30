@@ -722,4 +722,668 @@ The first refinement session should focus on:
 
 ## Next action
 
-Prepare the first CRM data-quality rule-refinement session and complete the business definition for the initial priority rules before requesting further Databricks implementation.
+## Additional evidence gaps — Databricks customer data-quality pilot
+
+### Current status
+
+The initial Databricks and Power BI customer data-quality pilot provides useful exploratory evidence.
+
+It does not yet provide a governed customer data-quality baseline.
+
+The following gaps must be addressed through business refinement, technical validation and operational design.
+
+## Gap 1 — Meaning of records tested
+
+### Gap
+
+The dashboard uses the term `records tested`, but the calculation grain has not been confirmed.
+
+The total may represent:
+
+- distinct Account records;
+- distinct Contact records;
+- attribute evaluations;
+- rule executions;
+- record-rule combinations;
+- duplicate pairs;
+- duplicate groups; or
+- a combination of different grains.
+
+### Why it matters
+
+The overall pass rate cannot be interpreted safely until the counted unit is explicit.
+
+A count of rule executions must not be described as the number of customer records.
+
+### Evidence required
+
+Confirm:
+
+- calculation grain for each rule;
+- calculation grain for each dashboard page;
+- whether one record is counted more than once;
+- whether Account and Contact results are combined;
+- whether duplicate outputs use records, pairs or groups; and
+- how aggregate totals are produced.
+
+### Owner
+
+Databricks technical owner — to confirm.
+
+### Status
+
+Open.
+
+## Gap 2 — Dashboard-total reconciliation
+
+### Gap
+
+The reviewed dashboard pages show different tested totals.
+
+| Dashboard view | Records tested |
+|---|---:|
+| Full Records | 8,929,330 |
+| All Attributes | 8,521,688 |
+| Difference | 407,642 |
+
+### Why it matters
+
+The discrepancy prevents the aggregate result from being treated as a stable or governed measure.
+
+### Evidence required
+
+Confirm:
+
+- page filters;
+- hidden slicers;
+- source-table coverage;
+- execution dates;
+- refresh timing;
+- excluded rules;
+- skipped or failed executions;
+- treatment of nulls;
+- aggregation logic; and
+- whether the pages intentionally answer different questions.
+
+### Owner
+
+Power BI and Databricks technical owners — to confirm.
+
+### Status
+
+Open.
+
+## Gap 3 — Eligible population by rule
+
+### Gap
+
+The eligible population has not been confirmed for each rule.
+
+This is especially material for:
+
+- ABN completeness;
+- ACN completeness;
+- repeated ABN;
+- repeated ACN;
+- email completeness;
+- mobile completeness;
+- email uniqueness; and
+- mobile similarity.
+
+### Why it matters
+
+Not every record is expected to:
+
+- contain an email address;
+- contain a mobile number;
+- hold an ABN;
+- hold an ACN;
+- be active;
+- be current;
+- be unique on a shared-contact field; or
+- be suitable for duplicate comparison.
+
+### Evidence required
+
+For every rule, confirm:
+
+- source object;
+- record type;
+- account type;
+- legal entity type;
+- active and inactive treatment;
+- historical-record treatment;
+- merged and superseded-record treatment;
+- test and system-record exclusions;
+- relevant activity period; and
+- approved exceptions.
+
+### Owner
+
+Business rule owner and data steward — to confirm.
+
+### Status
+
+Open.
+
+## Gap 4 — Numerator and denominator definitions
+
+### Gap
+
+The numerator and denominator definitions are not yet visible or approved for the pilot measures.
+
+### Why it matters
+
+A technically calculated percentage may still be misleading when:
+
+- the numerator and denominator use different populations;
+- blank values are excluded from one calculation but not another;
+- multiple rule executions are counted for one record;
+- account and contact populations are combined;
+- duplicate groups are divided by record counts; or
+- recent failures are divided by the total historical base.
+
+### Evidence required
+
+For every reported rate, document:
+
+- numerator;
+- denominator;
+- grain;
+- population;
+- exclusions;
+- exceptions;
+- period;
+- filters;
+- source;
+- rule version; and
+- permitted use.
+
+### Owner
+
+Business rule owner and Databricks technical owner — to confirm.
+
+### Status
+
+Open.
+
+## Gap 5 — Completeness versus usability
+
+### Gap
+
+The pilot reports very high completeness for email and mobile fields.
+
+It is unclear whether completeness means only that a field contains a value.
+
+### Why it matters
+
+A populated contact field may still be:
+
+- malformed;
+- outdated;
+- a placeholder;
+- unusable;
+- unverified;
+- not consented for use;
+- associated with a representative; or
+- inappropriate for the intended service communication.
+
+### Evidence required
+
+Confirm:
+
+- exact `is_complete` logic;
+- exact `is_complete_secondary` logic;
+- treatment of blank strings;
+- treatment of placeholder values;
+- treatment of invalid formats;
+- relationship between completeness and validity; and
+- whether multiple accepted contact methods should be assessed together.
+
+### Related rule
+
+`CAM-DQ-001 — Minimum valid contact method`
+
+### Owner
+
+Business rule owner and Databricks technical owner — to confirm.
+
+### Status
+
+Open.
+
+## Gap 6 — Similarity-rule meaning
+
+### Gap
+
+The pilot includes `is_similar_duplicate` rules with thresholds such as `0.9` and `1`.
+
+The business and technical meaning of these thresholds is not confirmed.
+
+### Why it matters
+
+A similarity threshold may produce:
+
+- exact matches;
+- near matches;
+- formatting matches;
+- typographical matches;
+- false positives;
+- duplicate pairs; or
+- duplicate groups.
+
+The result cannot be interpreted safely without knowing the comparison method.
+
+### Evidence required
+
+Confirm:
+
+- algorithm used;
+- fields compared;
+- normalisation applied;
+- meaning of threshold `1`;
+- meaning of threshold `0.9`;
+- whether comparisons are within or across objects;
+- whether results are records, pairs or groups;
+- false-positive review;
+- false-negative review; and
+- overlap with Plauti scenarios.
+
+### Related rules
+
+- `CAM-DQ-002 — Exact email duplicate signal`
+- `CAM-DQ-003 — Exact mobile duplicate signal`
+
+### Owner
+
+Databricks technical owner and Plauti owner — to confirm.
+
+### Status
+
+Open.
+
+## Gap 7 — Rule taxonomy
+
+### Gap
+
+Similarity and potential-duplicate checks appear under the validity dimension.
+
+### Why it matters
+
+Stakeholders may interpret a potential match as an invalid record.
+
+This weakens decision clarity and can lead to unsafe remediation.
+
+### Evidence required
+
+Agree a rule taxonomy that distinguishes:
+
+- completeness;
+- format validity;
+- reference validity;
+- verification;
+- uniqueness;
+- duplicate signals;
+- timeliness;
+- accuracy; and
+- consistency.
+
+### Owner
+
+Business rule owner, data governance and analytics owner — to confirm.
+
+### Status
+
+Open.
+
+## Gap 8 — ABN rule interpretation
+
+### Gap
+
+The pilot reports ABN validity and uniqueness results, but the eligible organisation population and rule levels are unresolved.
+
+### Why it matters
+
+The output may combine:
+
+- missing ABNs;
+- malformed ABNs;
+- checksum-invalid ABNs;
+- organisation types not expected to hold an ABN;
+- inactive or historical accounts;
+- placeholder values;
+- unclassifiable accounts; and
+- repeated values.
+
+These categories imply different actions.
+
+### Evidence required
+
+Confirm:
+
+- organisation types expected to hold an ABN;
+- authoritative field;
+- normalisation logic;
+- minimum assessment level;
+- checksum use;
+- exception categories;
+- treatment of unclassifiable accounts;
+- repeated-value grain; and
+- relationship with Plauti and Salesforce controls.
+
+### Related rules
+
+- `CAM-DQ-004 — ABN completeness`
+- `CAM-DQ-006 — Repeated ABN`
+
+### Owner
+
+Business rule owner, data steward and technical owners — to confirm.
+
+### Status
+
+Open.
+
+## Gap 9 — ACN rule interpretation
+
+### Gap
+
+The pilot reports ACN validity and uniqueness results, but the eligible company population and rule levels are unresolved.
+
+### Why it matters
+
+Not every Organisation Account is expected to hold an ACN.
+
+The output may also contain:
+
+- missing ACNs;
+- malformed ACNs;
+- checksum-invalid ACNs;
+- ABNs entered in the ACN field;
+- deregistered companies;
+- non-company entities;
+- international entities;
+- inactive records;
+- placeholder values; and
+- repeated values.
+
+### Evidence required
+
+Confirm:
+
+- legal entity types expected to hold an ACN;
+- authoritative field;
+- normalisation logic;
+- minimum assessment level;
+- checksum use;
+- cross-field ABN treatment;
+- exception categories;
+- treatment of unclassifiable accounts;
+- repeated-value grain; and
+- relationship with Plauti and Salesforce controls.
+
+### Related rules
+
+- `CAM-DQ-005 — ACN completeness`
+- `CAM-DQ-007 — Repeated ACN`
+
+### Owner
+
+Business rule owner, data steward and technical owners — to confirm.
+
+### Status
+
+Open.
+
+## Gap 10 — Duplicate review outcomes
+
+### Gap
+
+The pilot shows duplicate and uniqueness signals, but governed review outcomes are not visible.
+
+### Why it matters
+
+A repeated value or similarity match does not establish:
+
+- confirmed duplicate identity;
+- rejected match;
+- unresolved match;
+- approved exception;
+- merge candidate; or
+- completed merge.
+
+Without outcome data, the precision and operational value of the rules cannot be evaluated.
+
+### Evidence required
+
+Confirm whether Salesforce, Plauti or another governed source records:
+
+- signal ID;
+- match group;
+- review status;
+- reviewer;
+- review date;
+- confirmed duplicate;
+- rejected match;
+- unresolved match;
+- exception;
+- merge candidate;
+- merged status; and
+- reason for retaining separate records.
+
+### Owner
+
+Operational owner and Plauti owner — to confirm.
+
+### Status
+
+Open.
+
+## Gap 11 — Tool overlap
+
+### Gap
+
+The relationship between Salesforce duplicate controls, Plauti and Databricks has not been fully validated.
+
+### Why it matters
+
+Duplicated or inconsistent logic may create:
+
+- conflicting results;
+- duplicated work queues;
+- inconsistent thresholds;
+- competing sources of truth;
+- avoidable maintenance;
+- unclear accountability; and
+- unsafe merge decisions.
+
+### Evidence required
+
+For each priority rule, confirm:
+
+- current Salesforce control;
+- active Plauti scenario;
+- Databricks diagnostic purpose;
+- Power BI presentation purpose;
+- operational-review owner;
+- governance role;
+- duplicate logic overlap; and
+- intended source of truth for outcomes.
+
+### Owner
+
+CRM Product Owner, Plauti owner and Databricks technical owner — to confirm.
+
+### Status
+
+Open.
+
+## Gap 12 — Operational response and capacity
+
+### Gap
+
+The action following a failed rule has not been agreed.
+
+### Why it matters
+
+A technically valid result can create unmanaged demand when there is no agreed:
+
+- owner;
+- queue;
+- priority;
+- service standard;
+- exception process;
+- escalation pathway;
+- merge authority; or
+- remediation capacity.
+
+### Evidence required
+
+For every rule, confirm whether the response is:
+
+- correction during the next legitimate interaction;
+- operational review;
+- controlled remediation;
+- upstream process improvement;
+- Salesforce prevention;
+- Plauti duplicate review;
+- Databricks monitoring only;
+- governance escalation;
+- approved exception; or
+- no action.
+
+### Owner
+
+Business and operational owners — to confirm.
+
+### Status
+
+Open.
+
+## Gap 13 — Rule versioning and auditability
+
+### Gap
+
+The pilot does not visibly show a governed rule-version model.
+
+### Why it matters
+
+Results cannot be compared safely over time when logic, thresholds, populations or exclusions change without a recorded version.
+
+### Evidence required
+
+Confirm that every governed execution records:
+
+- rule ID;
+- rule version;
+- business-definition version;
+- technical-logic version;
+- execution date;
+- source snapshot;
+- population definition;
+- threshold;
+- exclusions;
+- result status; and
+- approval status.
+
+### Owner
+
+Databricks technical owner and data governance — to confirm.
+
+### Status
+
+Open.
+
+## Gap 14 — Reporting and communication approval
+
+### Gap
+
+No pilot metric currently has approved slide-safe wording.
+
+### Why it matters
+
+Without approved language and caveats, stakeholders may overinterpret:
+
+- the approximate 95.9% aggregate pass rate;
+- ACN validity;
+- ABN validity;
+- email uniqueness;
+- mobile similarity;
+- repeated identifiers; or
+- completeness results.
+
+### Evidence required
+
+For each approved measure, document:
+
+- metric name;
+- business definition;
+- source;
+- grain;
+- numerator;
+- denominator;
+- period;
+- result;
+- caveat;
+- interpretation;
+- permitted audience;
+- slide-safe wording; and
+- approval owner.
+
+### Owner
+
+Business rule owner, analytics owner and governance — to confirm.
+
+### Status
+
+Open.
+
+## Priority validation sequence
+
+Address the gaps in this order:
+
+1. confirm the pilot calculation grain;
+2. reconcile dashboard totals;
+3. confirm rule-level source fields and technical logic;
+4. define eligible populations;
+5. define exclusions and exceptions;
+6. confirm numerator and denominator structures;
+7. refine rule taxonomy;
+8. compare Salesforce, Plauti and Databricks responsibilities;
+9. define operational response and ownership;
+10. validate rule outputs against reviewed examples;
+11. record rule versions and permitted uses; and
+12. approve reporting wording only where evidence supports it.
+
+## Stop conditions
+
+Do not approve a rule for governed reporting when any of the following remain unresolved:
+
+- calculation grain;
+- eligible population;
+- numerator;
+- denominator;
+- source;
+- rule logic;
+- threshold meaning;
+- exception treatment;
+- technical ownership;
+- business ownership;
+- operational response;
+- duplicate-review status;
+- tool overlap; or
+- permitted use.
+
+Do not approve the aggregate pilot score while the dashboard totals remain unreconciled.
+
+## Related pages
+
+- `databricks-customer-data-quality-pilot-input.md`
+- `existing-evidence-inventory.md`
+- `../02-define/crm-data-quality-rule-register.md`
+- `../02-define/crm-data-quality-rule-refinement-index.md`
+- `../02-define/crm-data-quality-rule-refinement-workshop.md`
+- `../02-define/rules/`
+- `../00-project-control/status-and-validation-model.md`
+- `../00-project-control/risk-register.md`
+- `../06-decisions/decision-log.md`
