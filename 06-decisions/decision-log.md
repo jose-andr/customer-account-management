@@ -96,7 +96,163 @@ Use these terms consistently:
 | Operational review | Confirm identity, assess risk and decide whether corrective action is safe |
 | Governance | Define standards, ownership, thresholds and escalation |
 | Root-cause improvement | Reduce defects created by upstream process or system design |
+## Additional decisions — first CRM data-quality rule-refinement cycle
 
+### CAM-DEC-013 — Use the Databricks customer data-quality pilot as a refinement input
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-013 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Use the initial Databricks and Power BI customer data-quality pilot as exploratory evidence for refining business-rule definitions, populations, denominators, grain, taxonomy and operational responses. |
+| Rationale | The pilot demonstrates that technical checks can be executed and reveals useful diagnostic signals, but the underlying business definitions and calculation bases are not yet sufficiently validated for governed reporting. |
+| Implication | Pilot results may inform workshops, technical validation and rule prioritisation. They must not be treated as approved customer data-quality measures. |
+| Related files | `01-discover/databricks-customer-data-quality-pilot-input.md`; `02-define/crm-data-quality-rule-refinement-index.md` |
+
+### CAM-DEC-014 — Do not use the 95.9% pilot result as a governed customer data-quality score
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-014 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Do not describe the pilot’s approximate 95.9% aggregate pass rate as the organisation’s customer data-quality, accuracy or reliability score. |
+| Rationale | The dashboard combines different rules and potentially different account, contact, attribute and rule-execution populations. Page-level tested totals are also not yet reconciled. |
+| Implication | Any communication of the result must label it as an exploratory aggregate rule-pass rate and include its unresolved grain, weighting and denominator caveats. |
+| Related files | `01-discover/databricks-customer-data-quality-pilot-input.md` |
+
+### CAM-DEC-015 — Reconcile the pilot calculation model before approving reporting use
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-015 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Require reconciliation of the pilot calculation model before any rule or overall result is approved for operational or executive reporting. |
+| Rationale | The Full Records and All Attributes views show different tested totals, and the meaning of `records tested` has not been confirmed. |
+| Implication | Technical validation must confirm source tables, grain, page filters, blank handling, exclusions, rule timing, thresholds, aggregation and rule versioning. |
+| Related files | `01-discover/databricks-customer-data-quality-pilot-input.md`; `02-define/crm-data-quality-rule-refinement-index.md` |
+
+### CAM-DEC-016 — Separate completeness, validity, verification, uniqueness and duplicate signals
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-016 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Use distinct rule categories for completeness, format validity, reference validity, verification, uniqueness and duplicate signals. |
+| Rationale | The pilot currently places some similarity and duplicate-detection checks under validity, which may cause potential matches to be interpreted as invalid records. |
+| Implication | The business-rule taxonomy and Power BI presentation should be refined before governed use. Similarity checks must be labelled as duplicate or potential-match signals where appropriate. |
+| Related files | `01-discover/databricks-customer-data-quality-pilot-input.md`; `02-define/crm-data-quality-rule-refinement-index.md` |
+
+### CAM-DEC-017 — Establish seven rules as the first business-refinement set
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-017 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Use the following seven rules as the first contained business-refinement set: minimum valid contact method, exact email duplicate signal, exact mobile duplicate signal, ABN completeness, ACN completeness, repeated ABN and repeated ACN. |
+| Rationale | These rules cover the highest-priority contact, identifier and duplicate-quality questions already represented in the pilot and existing rule inventory. |
+| Implication | Lower-priority name, trading-name, secondary-contact, fuzzy-match and external-verification rules remain in the backlog until the first cycle clarifies the operating pattern. |
+| Related files | `02-define/crm-data-quality-rule-refinement-index.md`; `02-define/crm-data-quality-rule-register.md` |
+
+### CAM-DEC-018 — Keep all seven priority rules in draft status
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-018 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Keep all seven priority rules at `Draft — business refinement required` until their populations, logic, exceptions, owners and permitted uses are agreed. |
+| Rationale | Technical execution in Databricks does not establish that the corresponding business rule is valid, operationally actionable or approved. |
+| Implication | No rule should move to governed status solely because a dashboard result exists. |
+| Related files | `02-define/rules/`; `00-project-control/status-and-validation-model.md` |
+
+### CAM-DEC-019 — Define minimum valid contact method separately from field completeness
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-019 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Treat minimum valid contact method as a business rule that may combine multiple accepted contact methods, rather than equating it with a populated email or mobile field. |
+| Rationale | A populated value may be malformed, outdated, unusable, unverified or inappropriate for contact. Customers may also legitimately use different accepted methods. |
+| Implication | Email and mobile completeness results must not be presented as usable customer-contact coverage until validity and exception logic are agreed. |
+| Related files | `02-define/rules/CAM-DQ-001-minimum-valid-contact-method.md` |
+
+### CAM-DEC-020 — Treat exact email and mobile matches as duplicate signals only
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-020 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Treat exact email and exact mobile matches as potential duplicate signals requiring review, not as proof of duplicate identity. |
+| Rationale | Contact details may legitimately be shared by families, households, carers, representatives or supported customers. Mobile numbers may also be recycled. |
+| Implication | No account merge or customer-level action may be triggered solely by an exact email or mobile match. |
+| Related files | `02-define/rules/CAM-DQ-002-exact-email-duplicate-signal.md`; `02-define/rules/CAM-DQ-003-exact-mobile-duplicate-signal.md` |
+
+### CAM-DEC-021 — Define ABN and ACN eligibility before interpreting completeness
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-021 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Define which Organisation Account and legal entity types are expected to hold an ABN or ACN before calculating governed completeness rates. |
+| Rationale | Not every organisation requires both identifiers. Using all Organisation Accounts as the denominator would overstate failure and create misleading comparisons. |
+| Implication | Missing, malformed, checksum-invalid, exempt, unclassifiable and externally verified records must be separated where they imply different decisions or actions. |
+| Related files | `02-define/rules/CAM-DQ-004-abn-completeness.md`; `02-define/rules/CAM-DQ-005-acn-completeness.md` |
+
+### CAM-DEC-022 — Treat repeated ABN and ACN values as review signals
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-022 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Treat repeated ABN and ACN values as organisation-account review signals rather than confirmed duplicate organisations or automatic merge candidates. |
+| Rationale | One legal entity may legitimately have multiple operational accounts, locations, service relationships, trading names or historical records. |
+| Implication | Outputs must state whether they count records, groups or pairs and must use controlled human review before confirmation or merge. |
+| Related files | `02-define/rules/CAM-DQ-006-repeated-abn.md`; `02-define/rules/CAM-DQ-007-repeated-acn.md` |
+
+### CAM-DEC-023 — Require compatible numerator and denominator definitions
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-023 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Require every governed rate to use a numerator and denominator with the same population, grain, period, exclusions and rule version. |
+| Rationale | Combining incompatible activity bases or grains produces technically calculated but misleading results. |
+| Implication | Each rule must record its business question, source, grain, eligible population, numerator, denominator, filters, period and caveats before reporting approval. |
+| Related files | `02-define/crm-data-quality-rule-refinement-index.md`; `00-project-control/status-and-validation-model.md` |
+
+### CAM-DEC-024 — Require an operational response before governed rule use
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-024 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Do not approve a rule for governed operational use until the expected response, owner, capacity, exception process and escalation pathway are agreed. |
+| Rationale | A technically valid failure list can create unmanaged queues, inappropriate customer contact or unsafe record changes when no operating process exists. |
+| Implication | Rules may remain diagnostic even after technical validation. Operational use requires separate approval. |
+| Related files | `02-define/crm-data-quality-rule-refinement-index.md`; `02-define/crm-data-quality-rule-refinement-workshop.md` |
+
+### CAM-DEC-025 — Preserve distinct tool responsibilities
+
+| Field | Detail |
+|---|---|
+| Decision ID | CAM-DEC-025 |
+| Status | Agreed for current project use |
+| Date | 30 July 2026 |
+| Decision | Preserve distinct responsibilities for Salesforce, Plauti, Databricks, Power BI, human review and governance. |
+| Rationale | The tools support different stages of prevention, detection, monitoring, presentation, confirmation and decision-making. Duplicating logic without a defined purpose increases inconsistency and operational risk. |
+| Implication | Databricks should not automatically reproduce Plauti logic, and Power BI should not present exploratory technical results as governed measures. |
+| Related files | `02-define/crm-data-quality-rule-refinement-index.md`; `01-discover/evidence-gaps.md` |
 ## Open decisions
 
 | ID | Decision required | Evidence needed | Owner | Status |
