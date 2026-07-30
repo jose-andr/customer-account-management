@@ -423,4 +423,139 @@ Review this log:
 
 ## Next action
 
-Test the assumptions attached to the first CRM rule-refinement workshop and update each assumption immediately after the relevant decision is made.
+## Additional assumptions — Databricks customer data-quality pilot
+
+### Assumption status
+
+The following assumptions were exposed by the initial Databricks and Power BI customer data-quality pilot.
+
+They are not approved business rules, metric definitions or operating requirements.
+
+Each assumption must be:
+
+- validated;
+- refined;
+- rejected;
+- converted into a recorded decision; or
+- retained as an explicitly open assumption.
+
+## Pilot calculation assumptions
+
+| Assumption ID | Assumption | Current status | Validation required | Owner |
+|---|---|---|---|---|
+| CAM-ASM-011 | `Records tested` represents a consistent and decision-relevant unit across the dashboard | Open | Confirm whether the unit is accounts, contacts, attributes, rule executions, pairs, groups or record-rule combinations | Databricks technical owner — to confirm |
+| CAM-ASM-012 | The Full Records and All Attributes pages use compatible filters and calculation logic | Open | Reconcile the difference between the displayed tested totals | Databricks and Power BI technical owners — to confirm |
+| CAM-ASM-013 | Account and Contact results can be combined into one overall quality score | Open | Confirm compatible grain, weighting, population and business meaning | Analytics owner and data steward — to confirm |
+| CAM-ASM-014 | Each rule execution contributes appropriately to the aggregate score | Open | Confirm weighting and whether high-volume rules dominate the result | Analytics owner — to confirm |
+| CAM-ASM-015 | All rules shown in the dashboard were executed against the same source snapshot or reporting period | Open | Confirm execution dates, source refreshes and rule-run timing | Databricks technical owner — to confirm |
+| CAM-ASM-016 | Blank, excluded and not-applicable records are handled consistently across rules | Open | Document treatment for each rule and dashboard aggregation | Databricks technical owner and business rule owners — to confirm |
+| CAM-ASM-017 | The approximate 95.9% pass rate represents customer data quality in a meaningful way | Rejected for current use | Reconsider only after grain, weighting, populations and dimensions are governed | Business rule owner and analytics owner — to confirm |
+
+## Contact-quality assumptions
+
+| Assumption ID | Assumption | Current status | Validation required | Owner |
+|---|---|---|---|---|
+| CAM-ASM-018 | A populated email field represents a usable contact method | Open | Validate format, currency, ownership, consent, preference and exceptions | CAM-DQ-001 business owner — to confirm |
+| CAM-ASM-019 | A populated mobile field represents a usable contact method | Open | Validate format, currency, ownership, number type, consent and exceptions | CAM-DQ-001 business owner — to confirm |
+| CAM-ASM-020 | One valid email or mobile number is sufficient for every eligible Person Account | Open | Confirm accepted contact methods and service-specific needs | CAM-DQ-001 business owner — to confirm |
+| CAM-ASM-021 | Secondary contact fields have the same business purpose and quality expectations as primary fields | Open | Confirm field meaning, ownership, permitted use and precedence | CRM Product Owner and data steward — to confirm |
+| CAM-ASM-022 | Contact completeness can be evaluated without considering account activity or relevance | Open | Define active, inactive, historical and temporary-record treatment | CAM-DQ-001 business owner — to confirm |
+
+## Duplicate-signal assumptions
+
+| Assumption ID | Assumption | Current status | Validation required | Owner |
+|---|---|---|---|---|
+| CAM-ASM-023 | A similarity threshold of `1` represents an exact business-relevant match | Open | Confirm algorithm, preprocessing and comparison output | Databricks technical owner — to confirm |
+| CAM-ASM-024 | A similarity threshold of `0.9` represents a useful potential-duplicate signal | Open | Test precision, false positives, false negatives and operational value | Databricks technical owner and operational owner — to confirm |
+| CAM-ASM-025 | Repeated email addresses usually indicate duplicate Person Accounts | Open | Review shared households, carers, guardians, representatives and service arrangements | CAM-DQ-002 business and operational owners — to confirm |
+| CAM-ASM-026 | Repeated mobile numbers usually indicate duplicate Person Accounts | Open | Review shared numbers, representatives, recycled numbers and timing | CAM-DQ-003 business and operational owners — to confirm |
+| CAM-ASM-027 | Matching name should be mandatory for exact email or mobile duplicate signals | Open | Decide whether name is required logic or supporting review evidence | CAM-DQ-002 and CAM-DQ-003 business owners — to confirm |
+| CAM-ASM-028 | Databricks duplicate rules should reproduce active Plauti scenarios | Rejected for current use | Define each tool’s purpose before deciding whether logic should align | CRM Product Owner, Plauti owner and Databricks owner — to confirm |
+| CAM-ASM-029 | A duplicate signal can create a merge candidate without human confirmation | Rejected | Preserve operational review and controlled merge authority | Operational owner and merge authority — to confirm |
+
+## Organisation-identifier assumptions
+
+| Assumption ID | Assumption | Current status | Validation required | Owner |
+|---|---|---|---|---|
+| CAM-ASM-030 | Every active Organisation Account should contain an ABN | Open | Define eligible organisation types and approved exceptions | CAM-DQ-004 business owner — to confirm |
+| CAM-ASM-031 | Every active Organisation Account should contain an ACN | Rejected for current use | Restrict eligibility to entities expected to hold an ACN | CAM-DQ-005 business owner — to confirm |
+| CAM-ASM-032 | ABN and ACN presence is sufficient evidence of identifier validity | Rejected for current use | Separate presence, format, checksum and external verification | CAM-DQ-004 and CAM-DQ-005 business owners — to confirm |
+| CAM-ASM-033 | A checksum-valid ABN or ACN belongs to the Organisation Account on which it is recorded | Open | Define whether and how ownership is verified | Data steward and governance reviewers — to confirm |
+| CAM-ASM-034 | Organisation classifications are sufficiently reliable to define ABN and ACN denominators | Open | Profile record types, legal entity classifications and unresolved values | Data steward and Databricks technical owner — to confirm |
+| CAM-ASM-035 | Blank identifier fields and invalid identifier values should be treated as one failure category | Rejected for current use | Separate missing, malformed, checksum-invalid, exempt and unclassifiable records | CAM-DQ-004 and CAM-DQ-005 business owners — to confirm |
+| CAM-ASM-036 | An ABN entered into an ACN field can be detected and corrected automatically | Open | Validate detection reliability, correction controls and operational approval | CRM Product Owner and technical owner — to confirm |
+
+## Repeated-identifier assumptions
+
+| Assumption ID | Assumption | Current status | Validation required | Owner |
+|---|---|---|---|---|
+| CAM-ASM-037 | One ABN should map to one Organisation Account | Open | Review branches, locations, trading structures, service relationships and historical accounts | CAM-DQ-006 business owner — to confirm |
+| CAM-ASM-038 | One ACN should map to one Organisation Account | Open | Review multiple operational accounts, branches, service relationships and retained history | CAM-DQ-007 business owner — to confirm |
+| CAM-ASM-039 | Every repeated ABN represents a potential duplicate requiring the same review priority | Open | Define signal categories and prioritisation logic | CAM-DQ-006 operational owner — to confirm |
+| CAM-ASM-040 | Every repeated ACN represents a potential duplicate requiring the same review priority | Open | Define signal categories and prioritisation logic | CAM-DQ-007 operational owner — to confirm |
+| CAM-ASM-041 | Duplicate groups, duplicate pairs and records in duplicate groups can be used interchangeably | Rejected | Require every output to state its grain and reporting unit | Analytics owner — to confirm |
+| CAM-ASM-042 | Inactive or historical accounts should remain in repeated-identifier reporting | Open | Define reporting purpose and account-status treatment | Business rule owners — to confirm |
+
+## Operating-model assumptions
+
+| Assumption ID | Assumption | Current status | Validation required | Owner |
+|---|---|---|---|---|
+| CAM-ASM-043 | A rule failure will have an available operational owner | Open | Assign owners and confirm responsibility before operational use | Customer Focus and CRM leadership — to confirm |
+| CAM-ASM-044 | Operational teams have capacity to review pilot failure outputs | Open | Estimate volumes, review effort, service standards and backlog capacity | Operational owner — to confirm |
+| CAM-ASM-045 | Every detected failure should create a remediation action | Rejected for current use | Define diagnostic-only, next-interaction, exception and no-action pathways | Business and operational owners — to confirm |
+| CAM-ASM-046 | A Databricks result can be used operationally once the technical logic runs successfully | Rejected | Require business definition, validation, ownership and operational readiness | Business rule owner and governance — to confirm |
+| CAM-ASM-047 | Power BI is the source of truth for rule definitions | Rejected | Keep rule definitions in governed business and technical sources; use Power BI as a presentation layer | Repository owner and analytics owner |
+| CAM-ASM-048 | Current review outcomes are recorded consistently enough to evaluate rule precision | Open | Confirm review-status and outcome data in Salesforce, Plauti or another governed source | Operational owner and Plauti owner — to confirm |
+
+## Reporting assumptions
+
+| Assumption ID | Assumption | Current status | Validation required | Owner |
+|---|---|---|---|---|
+| CAM-ASM-049 | A high aggregate pass rate indicates low operational risk | Open | Assess rule importance, failure severity and affected journeys separately | Business rule owner — to confirm |
+| CAM-ASM-050 | All quality dimensions should be combined into one headline score | Open | Decide whether dimension-level reporting provides safer decision support | Analytics owner and data governance — to confirm |
+| CAM-ASM-051 | Completeness, validity and uniqueness scores are directly comparable | Open | Confirm populations, grains, rule counts and weighting | Analytics owner — to confirm |
+| CAM-ASM-052 | Pilot results can be compared over time without explicit rule versioning | Rejected | Require version, source snapshot, population and threshold metadata | Databricks technical owner — to confirm |
+| CAM-ASM-053 | Pilot results are suitable for executive communication with caveats alone | Rejected for current use | Complete metric governance and approve slide-safe wording first | Business rule owner and governance — to confirm |
+
+## Validation approach
+
+For each assumption:
+
+1. identify the authoritative source;
+2. confirm the responsible owner;
+3. gather safe and proportionate evidence;
+4. record whether the assumption is validated, refined or rejected;
+5. update the relevant rule page;
+6. update the rule register;
+7. record material decisions in the decision log;
+8. update risks where the result changes exposure; and
+9. record the permitted use of the resulting rule or metric.
+
+## Priority assumptions for the first workshop
+
+Resolve these assumptions first:
+
+1. CAM-ASM-011 — meaning of `records tested`;
+2. CAM-ASM-012 — compatibility of dashboard-page totals;
+3. CAM-ASM-018 — email presence versus usability;
+4. CAM-ASM-019 — mobile presence versus usability;
+5. CAM-ASM-023 — meaning of similarity threshold `1`;
+6. CAM-ASM-024 — meaning and usefulness of threshold `0.9`;
+7. CAM-ASM-030 — Organisation Account eligibility for ABN;
+8. CAM-ASM-031 — Organisation Account eligibility for ACN;
+9. CAM-ASM-037 — whether one ABN should map to one account;
+10. CAM-ASM-038 — whether one ACN should map to one account;
+11. CAM-ASM-043 — operational ownership; and
+12. CAM-ASM-044 — operational review capacity.
+
+## Related pages
+
+- `risk-register.md`
+- `status-and-validation-model.md`
+- `../01-discover/databricks-customer-data-quality-pilot-input.md`
+- `../01-discover/evidence-gaps.md`
+- `../02-define/crm-data-quality-rule-register.md`
+- `../02-define/crm-data-quality-rule-refinement-index.md`
+- `../02-define/crm-data-quality-rule-refinement-workshop.md`
+- `../02-define/rules/`
+- `../06-decisions/decision-log.md`
