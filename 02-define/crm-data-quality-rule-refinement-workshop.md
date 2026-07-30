@@ -27,7 +27,11 @@ The objective is to make decisions on a small set of priority rules.
 
 ## Source material
 
-Use the following sources during the workshop:
+Use the following sources during the workshop.
+
+Each source has a different role.
+
+Do not treat any one source as sufficient evidence for approving a business rule.
 
 ### Salesforce data-quality rule inventory
 
@@ -36,32 +40,170 @@ Use the following sources during the workshop:
 This remains the working source of truth for:
 
 - current rule IDs;
-- rule descriptions;
-- technical logic;
+- draft technical logic;
 - active and parked status;
-- contacts; and
-- implementation notes.
+- source fields;
+- implementation notes;
+- unresolved technical questions; and
+- named contacts where recorded.
+
+The Confluence inventory does not by itself establish that a rule has an approved business definition or governed reporting use.
+
+### Databricks customer data-quality pilot
+
+Use:
+
+`01-discover/databricks-customer-data-quality-pilot-input.md`
+
+This page records the initial Databricks rule execution and Power BI dashboard as exploratory evidence.
+
+Use it to examine:
+
+- rules already tested;
+- source tables shown in the pilot;
+- visible rule names and thresholds;
+- preliminary rule-pass results;
+- page-total discrepancies;
+- possible grain and denominator issues;
+- rule-taxonomy issues;
+- compatibility between account and contact results; and
+- questions requiring technical validation.
+
+The pilot may support rule refinement.
+
+It must not currently be used to:
+
+- claim an overall governed customer data-quality score;
+- report confirmed duplicate rates;
+- establish performance targets;
+- approve automated remediation;
+- compare teams or services; or
+- present executive measures without further validation.
+
+The displayed aggregate pass rate of approximately 95.9% remains exploratory.
+
+### Detailed rule definitions
+
+Use the following pages as the primary working definitions for the first refinement cycle:
+
+#### Person Account rules
+
+- `02-define/rules/CAM-DQ-001-minimum-valid-contact-method.md`
+- `02-define/rules/CAM-DQ-002-exact-email-duplicate-signal.md`
+- `02-define/rules/CAM-DQ-003-exact-mobile-duplicate-signal.md`
+
+#### Organisation Account rules
+
+- `02-define/rules/CAM-DQ-004-abn-completeness.md`
+- `02-define/rules/CAM-DQ-005-acn-completeness.md`
+- `02-define/rules/CAM-DQ-006-repeated-abn.md`
+- `02-define/rules/CAM-DQ-007-repeated-acn.md`
+
+Each rule page records:
+
+- the business question;
+- current working definition;
+- eligible-population questions;
+- candidate exclusions and exceptions;
+- proposed numerator and denominator;
+- grain and output-unit questions;
+- Salesforce, Plauti and Databricks responsibilities;
+- operational-response requirements;
+- ownership gaps;
+- risks;
+- Definition of Ready; and
+- workshop decisions.
+
+The pages are draft refinement artefacts.
+
+They are not approved business rules.
+
+### CRM data-quality rule register
+
+Use:
+
+`02-define/crm-data-quality-rule-register.md`
+
+The register is the portfolio-level control page for:
+
+- rule status;
+- priority;
+- pilot-to-rule mapping;
+- detailed rule links;
+- shared refinement decisions;
+- technical-execution status;
+- governed-use status;
+- workshop decisions; and
+- completion criteria.
+
+Update the register immediately after the workshop.
+
+Do not duplicate all rule-level detail in the register.
+
+### CRM data-quality rule refinement index
+
+Use:
+
+`02-define/crm-data-quality-rule-refinement-index.md`
+
+The index provides:
+
+- the overall refinement sequence;
+- common population and grain decisions;
+- shared denominator-safety rules;
+- tool boundaries;
+- duplicate terminology;
+- pilot findings requiring refinement; and
+- the definition of completion for the first cycle.
+
+Use it to prevent inconsistent decisions across individual rules.
 
 ### Plauti configuration
 
+Use:
+
 `Plauti Duplicate Check Configuration`
 
-Use this source to confirm:
+Confirm the current production position rather than relying only on historical documentation.
 
-- existing duplicate scenarios;
+Use this source to validate:
+
+- active duplicate scenarios;
 - matching fields;
+- exact and fuzzy logic;
+- thresholds;
 - record types;
 - cross-object behaviour;
+- real-time and scheduled checks;
+- result fields;
+- review outcomes;
 - merge permissions;
-- result fields; and
+- override behaviour;
+- exception handling; and
 - scheduled duplicate jobs.
 
-### Repository working pages
+The Plauti configuration may overlap with Databricks rules, but the tools do not necessarily serve the same purpose.
 
-- `01-discover/evidence-gaps.md`
-- `02-define/crm-data-quality-rule-refinement.md`
-- `02-define/crm-data-quality-rule-register.md`
-- `01-discover/current-state-evidence-synthesis.md`
+Do not assume Databricks should reproduce Plauti logic.
+
+### Salesforce controls
+
+Confirm existing Salesforce validation, matching and duplicate-management behaviour.
+
+For each rule, identify:
+
+- current validation rules;
+- current duplicate rules;
+- account-search prompts;
+- warning or blocking behaviour;
+- create and update coverage;
+- integration and import coverage;
+- override permissions;
+- exception handling;
+- existing ownership; and
+- known operational impacts.
+
+Do not recommend a new Salesforce control until the existing control position and valid exceptions are understood.
 
 ### Current-state operations
 
@@ -69,7 +211,86 @@ Use:
 
 `jose-andr/cx-current-state-sop-mapping`
 
-to validate how duplicate review, correction, escalation and merge decisions currently occur.
+to validate how the following currently occur:
+
+- account search;
+- duplicate identification;
+- duplicate review;
+- record correction;
+- merge assessment;
+- merge execution;
+- escalation;
+- exception handling;
+- audit activity; and
+- root-cause improvement.
+
+The current-state repository documents actual or reported operational practice.
+
+Do not replace current-state evidence with proposed role scope or future operating-model assumptions.
+
+### Supporting repository pages
+
+Use where relevant:
+
+- `01-discover/evidence-gaps.md`
+- `01-discover/current-state-evidence-synthesis.md`
+- `01-discover/existing-evidence-inventory.md`
+- `02-define/crm-data-quality-rule-refinement.md`
+- `00-project-control/status-and-validation-model.md`
+- `00-project-control/risk-register.md`
+- `06-decisions/decision-log.md`
+
+### Source hierarchy for workshop decisions
+
+Use the following hierarchy:
+
+| Decision need | Primary source |
+|---|---|
+| Current technical rule inventory | Salesforce Data Quality Rules Confluence page |
+| Initial analytical results | Databricks pilot evidence page and governed source environment |
+| Current duplicate configuration | Live Salesforce and Plauti configuration |
+| Current operational practice | `cx-current-state-sop-mapping` and operational representatives |
+| Draft business definition | Individual rule page |
+| Portfolio status | CRM data-quality rule register |
+| Shared refinement standards | CRM data-quality rule refinement index |
+| Approved project decision | Decision log |
+| Original customer or operational data | Approved organisational system of record |
+
+Where sources conflict:
+
+1. record the contradiction;
+2. do not resolve it through assumption;
+3. assign a validation owner;
+4. record the required evidence;
+5. keep the rule in refinement or validation status; and
+6. update the rule page after the source has been confirmed.
+
+### Evidence handling
+
+Do not bring raw customer records into the repository or workshop pack.
+
+Use:
+
+- aggregate results;
+- field names;
+- rule descriptions;
+- de-identified examples;
+- synthetic examples;
+- masked values;
+- screenshots without customer information; and
+- controlled access to source systems where record-level review is necessary.
+
+Do not place the following in GitHub:
+
+- customer names;
+- email addresses;
+- telephone numbers;
+- ABNs or ACNs tied to identifiable accounts;
+- CRM record IDs;
+- failed-record extracts;
+- unredacted dashboard screenshots;
+- credentials; or
+- sensitive operational data.
 
 ## Workshop outcome
 
