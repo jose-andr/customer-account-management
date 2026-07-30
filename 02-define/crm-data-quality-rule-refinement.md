@@ -25,22 +25,164 @@ The objective is to create a smaller, clearer and decision-relevant set of rules
 
 ## Source material
 
+Use the following sources together during business-rule refinement.
+
+Each source has a different role.
+
+No single source is sufficient to approve a business rule, governed metric or operational control.
+
 ### Salesforce data-quality rule inventory
 
 The current working rule inventory is maintained in Confluence:
 
 [Salesforce Data Quality Rules](https://jira-cityofmelbourne.atlassian.net/wiki/spaces/DP/pages/527597570/Salesforce+Data+Quality+Rules)
 
-This page remains the source of truth for:
+This page remains the working source of truth for:
 
 - current rule IDs;
-- business descriptions;
+- draft business descriptions;
 - technical logic;
 - rule priorities;
 - active and parked status;
 - source fields;
+- implementation notes;
 - contacts; and
 - ongoing rule changes.
+
+The Confluence inventory does not by itself establish that a rule has:
+
+- an approved business definition;
+- an agreed eligible population;
+- a safe numerator and denominator;
+- an operational owner;
+- a governed permitted use; or
+- reporting approval.
+
+### Databricks customer data-quality pilot
+
+Use:
+
+`../01-discover/databricks-customer-data-quality-pilot-input.md`
+
+This page records the initial Databricks rule execution and Power BI dashboard as exploratory evidence.
+
+Use the pilot to examine:
+
+- rules already tested;
+- source tables shown;
+- visible attributes and rule types;
+- similarity thresholds;
+- preliminary rule-pass results;
+- page-total discrepancies;
+- possible grain and denominator issues;
+- rule-taxonomy issues;
+- Account and Contact population compatibility;
+- candidate technical defects; and
+- questions requiring business or technical validation.
+
+The pilot may be used for:
+
+- business-rule refinement;
+- workshop preparation;
+- technical-logic review;
+- source-field validation;
+- denominator investigation;
+- pilot-to-rule comparison; and
+- prioritisation of further analysis.
+
+The pilot must not currently be used to:
+
+- claim an overall governed customer data-quality score;
+- report confirmed duplicate rates;
+- establish performance targets;
+- compare teams or services;
+- approve automated remediation;
+- make customer-level decisions; or
+- present executive measures without further validation.
+
+The displayed aggregate rule-pass rate of approximately 95.9% remains exploratory.
+
+### Detailed priority-rule definitions
+
+Use the following pages as the primary business-definition artefacts for the first refinement cycle.
+
+#### Person Account rules
+
+- `rules/CAM-DQ-001-minimum-valid-contact-method.md`
+- `rules/CAM-DQ-002-exact-email-duplicate-signal.md`
+- `rules/CAM-DQ-003-exact-mobile-duplicate-signal.md`
+
+#### Organisation Account rules
+
+- `rules/CAM-DQ-004-abn-completeness.md`
+- `rules/CAM-DQ-005-acn-completeness.md`
+- `rules/CAM-DQ-006-repeated-abn.md`
+- `rules/CAM-DQ-007-repeated-acn.md`
+
+Each detailed rule page records:
+
+- business question;
+- purpose;
+- current working definition;
+- eligible-population questions;
+- candidate exclusions;
+- legitimate exceptions;
+- proposed numerator and denominator;
+- grain and output-unit questions;
+- Salesforce, Plauti and Databricks responsibilities;
+- operational-response requirements;
+- ownership gaps;
+- risks;
+- Definition of Ready;
+- current permitted use; and
+- workshop decisions.
+
+These pages are draft refinement artefacts.
+
+They are not approved business rules.
+
+### CRM data-quality rule register
+
+Use:
+
+`crm-data-quality-rule-register.md`
+
+The register is the portfolio-level control page for:
+
+- rule status;
+- priority;
+- detailed rule links;
+- pilot-to-rule mapping;
+- technical-execution status;
+- governed-use status;
+- shared refinement decisions;
+- workshop decisions;
+- ownership; and
+- first-cycle completion criteria.
+
+Update the register after each material rule decision.
+
+Do not duplicate the complete rule definition in the register.
+
+### CRM data-quality rule refinement index
+
+Use:
+
+`crm-data-quality-rule-refinement-index.md`
+
+The index provides:
+
+- the first-cycle rule set;
+- common population decisions;
+- shared grain and denominator requirements;
+- rule-taxonomy guidance;
+- duplicate terminology;
+- tool boundaries;
+- pilot findings requiring refinement;
+- refinement sequence; and
+- definition of completion.
+
+Use the index to keep decisions consistent across the seven individual rules.
 
 ### Plauti duplicate-check configuration
 
@@ -51,16 +193,56 @@ The existing Plauti configuration is documented in Confluence:
 The documented configuration includes:
 
 - Person Account duplicate detection;
-- Account duplicate detection;
+- Organisation Account duplicate detection;
 - matching scenarios;
 - record-type applicability;
 - cross-object configuration;
 - duplicate result fields;
 - merge permissions;
 - scheduled jobs; and
-- fields presented to staff during duplicate review.
+- fields presented during duplicate review.
 
 The current production configuration still requires validation.
+
+Confirm:
+
+- active scenarios;
+- fields used;
+- exact and fuzzy matching logic;
+- normalisation;
+- thresholds;
+- cross-object behaviour;
+- real-time and scheduled checks;
+- result fields;
+- review statuses;
+- merge permissions;
+- override behaviour;
+- exception handling;
+- output volumes; and
+- false-positive patterns.
+
+Do not assume that Databricks should reproduce Plauti logic.
+
+The tools may support different purposes.
+
+### Salesforce controls
+
+Confirm current Salesforce validation, matching and duplicate-management behaviour before proposing new controls.
+
+For each rule, identify:
+
+- current validation rules;
+- current duplicate rules;
+- account-search prompts;
+- warning or blocking behaviour;
+- create and update coverage;
+- integration and import coverage;
+- override permissions;
+- exception handling;
+- known operational impacts; and
+- current ownership.
+
+Do not recommend a new validation or duplicate rule until the existing control and legitimate exceptions are understood.
 
 ### Current-state operational evidence
 
@@ -68,17 +250,92 @@ Detailed current operational practice remains in:
 
 `jose-andr/cx-current-state-sop-mapping`
 
-That repository should be used to validate:
+Use that repository to validate:
 
-- how potential duplicates are reviewed;
+- how account search currently occurs;
+- how potential duplicates are identified;
+- how records are reviewed;
 - how merge decisions are made;
 - which exceptions occur;
 - what workarounds exist;
 - where decisions are recorded;
-- what risks staff manage; and
-- where individual knowledge is required.
+- what risks staff manage;
+- where individual knowledge is required;
+- how corrections are made; and
+- how issues are escalated.
 
-## Control-system model
+The current-state repository documents actual or reported operational practice.
+
+Do not replace current-state evidence with proposed role scope, future governance or aspirational operating-model assumptions.
+
+### Supporting repository pages
+
+Use where relevant:
+
+- `../01-discover/evidence-gaps.md`
+- `../01-discover/current-state-evidence-synthesis.md`
+- `../01-discover/existing-evidence-inventory.md`
+- `../00-project-control/assumptions-log.md`
+- `../00-project-control/risk-register.md`
+- `../00-project-control/status-and-validation-model.md`
+- `crm-data-quality-rule-refinement-workshop.md`
+- `../06-decisions/decision-log.md`
+
+### Source hierarchy
+
+Use the following hierarchy for refinement decisions:
+
+| Decision need | Primary source |
+|---|---|
+| Current technical rule inventory | Salesforce Data Quality Rules Confluence page |
+| Initial analytical results | Databricks pilot evidence and governed analytical environment |
+| Current Salesforce control | Live Salesforce configuration |
+| Current duplicate configuration | Live Plauti configuration |
+| Current operational practice | Current-state SOP repository and operational representatives |
+| Draft business definition | Individual rule page |
+| Rule portfolio status | CRM data-quality rule register |
+| Shared refinement standards | CRM data-quality rule refinement index |
+| Approved project decision | Decision log |
+| Original customer or operational data | Approved organisational system of record |
+
+Where sources conflict:
+
+1. record the contradiction;
+2. do not resolve it through assumption;
+3. assign a validation owner;
+4. identify the required evidence;
+5. keep the rule in refinement or validation status;
+6. update the relevant risk or assumption where necessary; and
+7. update the rule page only after the source has been confirmed.
+
+### Evidence handling
+
+Do not bring raw customer records into GitHub or the general workshop pack.
+
+Use:
+
+- aggregate results;
+- field names;
+- rule descriptions;
+- de-identified examples;
+- synthetic examples;
+- masked values;
+- safe screenshots;
+- controlled demonstrations in approved systems; and
+- source references.
+
+Do not place the following in GitHub:
+
+- customer names;
+- customer email addresses;
+- telephone numbers;
+- ABNs or ACNs tied to identifiable records;
+- CRM record identifiers;
+- failed-record extracts;
+- unredacted screenshots;
+- credentials;
+- access tokens; or
+- sensitive operational data.## Control-system model
 
 CRM account quality currently involves several different controls.
 
