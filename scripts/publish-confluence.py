@@ -1,0 +1,862 @@
+#!/usr/bin/env python3
+"""Publish Customer Account Management Markdown documentation to Confluence.
+
+The publisher:
+
+- discovers approved repository documentation folders;
+- creates matching Confluence folder pages;
+- publishes Markdown files beneath their matching folder pages;
+- uses the first Markdown H1 as the Confluence page title;
+- removes that H1 from the rendered page body;
+- generates file-specific Git review notes in memory;
+- creates or updates pages using title and parent-page identity;
+- avoids modifying repository Markdown files; and
+- avoids duplicate pages on repeated runs.
+
+Required environment variables:
+
+    CONFLUENCE_BASE_URL
+    CONFLUENCE_SPACE_ID
+    CONFLUENCE_PARENT_PAGE_ID
+    CONFLUENCE_USER_EMAIL
+    CONFLUENCE_API_TOKEN
+
+Run from the repository root:
+
+    python3 scripts/publish-confluence.py
+
+Preview the publishing plan without changing Confluence:
+
+    python3 scripts/publish-confluence.py --dry-run
+
+Publish one repository folder:
+
+    python3 scripts/publish-confluence.py --folder 00-project-control
+"""
+
+from __future__ import annotations
+
+import argparse
+import html
+import os
+import re
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Iterable
+from urllib.parse import urljoin
+
+import markdown
+import requests
+from requests.auth import HTTPBasicAuth
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
+
+PUBLISHABLE_DIRECTORIES = (
+    "00-project-control",
+    "01-discover",
+    "02-define",
+    "03-design",
+    "04-deliver",
+    "05-evaluation-and-learning",
+    "06-decisions",
+    "references",
+)
+
+EXCLUDED_FILES = {
+    Path("README.md"),
+}
+
+REVIEW_NOTES_LIMIT = int(os.getenv("REVIEW_NOTES_LIMIT", "25"))
+REQUEST_TIMEOUT_SECONDS = 30
+
+REVIEW_HEADING = "## Review notes"
+START_MARKER = "<!-- AUTO-REVIEW-NOTES:START -->"
+END_MARKER = "<!-- AUTO-REVIEW-NOTES:END -->"
+
+MANAGED_REVIEW_PATTERN = re.compile(
+    rf"""
+    (?:
+        ^{re.escape(REVIEW_HEADING)}[ \t]*\n
+        [ \t]*\n?
+    )?
+    ^{re.escape(START_MARKER)}[ \t]*\n
+    .*?
+    ^{re.escape(END_MARKER)}[ \t]*$
+    """,
+    flags=re.MULTILINE | re.DOTALL | re.VERBOSE,
+)
+
+FIRST_H1_PATTERN = re.compile(
+    r"^\s*#\s+(.+?)\s*$",
+    flags=re.MULTILINE,
+)
+
+
+@dataclass(frozen=True)
+class Configuration:
+    """Runtime configuration."""
+
+    base_url: str
+    space_id: str
+    parent_page_id: str
+    user_email: str
+    api_token: str
+
+
+@dataclass(frozen=True)
+class CommitRecord:
+    """One Git commit affecting a Markdown file."""
+
+    date: str
+    subject: str
+    author: str
+    short_hash: str
+
+
+@dataclass
+class ConfluencePage:
+    """Minimal Confluence page information used by the publisher."""
+
+    page_id: str
+    title: str
+    parent_id: str
+    version_number: int
+
+
+class ConfluenceClient:
+    """Small client for the Confluence Cloud REST API v2."""
+
+    def __init__(self, configuration: Configuration) -> None:
+        self.configuration = configuration
+        self.auth = HTTPBasicAuth(
+            configuration.user_email,
+            configuration.api_token,
+        )
+        self.headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        self.pages_by_identity: dict[tuple[str, str], ConfluencePage] = {}
+
+    def api_url(self, path: str) -> str:
+        """Build a Confluence REST API v2 URL."""
+        base_url = self.configuration.base_url.rstrip("/")
+
+        if base_url.endswith("/wiki"):
+            base_url = base_url[:-5]
+
+        return f"{base_url}/wiki/api/v2/{path.lstrip('/')}"
+
+    def raise_for_error(
+        self,
+        response: requests.Response,
+        action: str,
+    ) -> None:
+        """Raise a useful API error without exposing credentials."""
+        if response.ok:
+            return
+
+        excerpt = response.text[:1500].replace("\n", " ")
+
+        raise RuntimeError(
+            f"{action} failed with HTTP "
+            f"{response.status_code}: {excerpt}"
+        )
+
+    def load_pages(self) -> None:
+        """Load current pages in the configured Confluence space."""
+        url = self.api_url(
+            f"spaces/{self.configuration.space_id}/pages"
+        )
+        params: dict[str, str | int] = {
+            "limit": 250,
+            "status": "current",
+        }
+
+        loaded_count = 0
+
+        while url:
+            response = requests.get(
+                url,
+                params=params,
+                headers=self.headers,
+                auth=self.auth,
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+            self.raise_for_error(response, "Loading Confluence pages")
+
+            payload = response.json()
+
+            for item in payload.get("results", []):
+                page_id = str(item.get("id", "")).strip()
+                title = str(item.get("title", "")).strip()
+                parent_id = str(item.get("parentId", "")).strip()
+                version_number = item.get("version", {}).get("number", 1)
+
+                if not page_id or not title:
+                    continue
+
+                if not isinstance(version_number, int):
+                    version_number = 1
+
+                page = ConfluencePage(
+                    page_id=page_id,
+                    title=title,
+                    parent_id=parent_id,
+                    version_number=version_number,
+                )
+
+                self.pages_by_identity[(parent_id, title)] = page
+                loaded_count += 1
+
+            next_link = payload.get("_links", {}).get("next")
+
+            if next_link:
+                if next_link.startswith("http"):
+                    url = next_link
+                else:
+                    url = urljoin(
+                        self.configuration.base_url.rstrip("/") + "/",
+                        next_link.lstrip("/"),
+                    )
+
+                params = {}
+            else:
+                url = ""
+
+        print(f"Loaded {loaded_count} existing Confluence page(s).")
+
+    def create_page(
+        self,
+        *,
+        title: str,
+        parent_id: str,
+        body_html: str,
+    ) -> ConfluencePage:
+        """Create a published Confluence page."""
+        payload = {
+            "spaceId": self.configuration.space_id,
+            "status": "current",
+            "title": title,
+            "parentId": parent_id,
+            "body": {
+                "representation": "storage",
+                "value": body_html,
+            },
+        }
+
+        response = requests.post(
+            self.api_url("pages"),
+            json=payload,
+            headers=self.headers,
+            auth=self.auth,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        self.raise_for_error(response, f"Creating page '{title}'")
+
+        result = response.json()
+
+        page = ConfluencePage(
+            page_id=str(result["id"]),
+            title=title,
+            parent_id=parent_id,
+            version_number=int(
+                result.get("version", {}).get("number", 1)
+            ),
+        )
+
+        self.pages_by_identity[(parent_id, title)] = page
+
+        print(f"Created: {title}")
+        return page
+
+    def update_page(
+        self,
+        *,
+        page: ConfluencePage,
+        body_html: str,
+    ) -> ConfluencePage:
+        """Update an existing published Confluence page."""
+        next_version = page.version_number + 1
+
+        payload = {
+            "id": page.page_id,
+            "status": "current",
+            "title": page.title,
+            "spaceId": self.configuration.space_id,
+            "parentId": page.parent_id,
+            "body": {
+                "representation": "storage",
+                "value": body_html,
+            },
+            "version": {
+                "number": next_version,
+                "message": "Published from the Customer Account Management repository",
+                "minorEdit": True,
+            },
+        }
+
+        response = requests.put(
+            self.api_url(f"pages/{page.page_id}"),
+            json=payload,
+            headers=self.headers,
+            auth=self.auth,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        self.raise_for_error(
+            response,
+            f"Updating page '{page.title}'",
+        )
+
+        updated_page = ConfluencePage(
+            page_id=page.page_id,
+            title=page.title,
+            parent_id=page.parent_id,
+            version_number=next_version,
+        )
+
+        self.pages_by_identity[
+            (updated_page.parent_id, updated_page.title)
+        ] = updated_page
+
+        print(f"Updated: {page.title}")
+        return updated_page
+
+    def create_or_update_page(
+        self,
+        *,
+        title: str,
+        parent_id: str,
+        body_html: str,
+        dry_run: bool,
+    ) -> ConfluencePage:
+        """Create or update a page identified by title and parent."""
+        existing_page = self.pages_by_identity.get(
+            (parent_id, title)
+        )
+
+        if dry_run:
+            action = "Would update" if existing_page else "Would create"
+            print(f"{action}: {title}")
+
+            if existing_page:
+                return existing_page
+
+            return ConfluencePage(
+                page_id=f"dry-run:{parent_id}:{title}",
+                title=title,
+                parent_id=parent_id,
+                version_number=1,
+            )
+
+        if existing_page:
+            return self.update_page(
+                page=existing_page,
+                body_html=body_html,
+            )
+
+        return self.create_page(
+            title=title,
+            parent_id=parent_id,
+            body_html=body_html,
+        )
+
+
+def parse_arguments() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Publish Customer Account Management Markdown pages "
+            "to Confluence."
+        )
+    )
+
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show the publishing plan without changing Confluence.",
+    )
+
+    parser.add_argument(
+        "--folder",
+        choices=PUBLISHABLE_DIRECTORIES,
+        help="Publish only one approved repository folder.",
+    )
+
+    return parser.parse_args()
+
+
+def required_environment_variable(name: str) -> str:
+    """Return a required environment variable."""
+    value = os.getenv(name, "").strip()
+
+    if not value:
+        raise RuntimeError(
+            f"Required environment variable is missing: {name}"
+        )
+
+    return value
+
+
+def load_configuration() -> Configuration:
+    """Load publishing configuration from environment variables."""
+    return Configuration(
+        base_url=required_environment_variable(
+            "CONFLUENCE_BASE_URL"
+        ),
+        space_id=required_environment_variable(
+            "CONFLUENCE_SPACE_ID"
+        ),
+        parent_page_id=required_environment_variable(
+            "CONFLUENCE_PARENT_PAGE_ID"
+        ),
+        user_email=required_environment_variable(
+            "CONFLUENCE_USER_EMAIL"
+        ),
+        api_token=required_environment_variable(
+            "CONFLUENCE_API_TOKEN"
+        ),
+    )
+
+
+def run_git_command(arguments: list[str]) -> str:
+    """Run a Git command from the repository root."""
+    completed = subprocess.run(
+        ["git", *arguments],
+        cwd=REPOSITORY_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    if completed.returncode != 0:
+        message = completed.stderr.strip() or completed.stdout.strip()
+
+        raise RuntimeError(
+            f"Git command failed: git {' '.join(arguments)}\n"
+            f"{message}"
+        )
+
+    return completed.stdout
+
+
+def confirm_git_repository() -> None:
+    """Confirm full Git history is available."""
+    result = run_git_command(
+        ["rev-parse", "--is-inside-work-tree"]
+    ).strip()
+
+    if result != "true":
+        raise RuntimeError(
+            f"Not a Git working tree: {REPOSITORY_ROOT}"
+        )
+
+
+def discover_markdown_files(
+    selected_folder: str | None,
+) -> list[Path]:
+    """Discover Markdown files in publishing order."""
+    directories = (
+        (selected_folder,)
+        if selected_folder
+        else PUBLISHABLE_DIRECTORIES
+    )
+
+    discovered: list[Path] = []
+
+    for directory_name in directories:
+        directory = REPOSITORY_ROOT / directory_name
+
+        if not directory.exists():
+            print(f"Skipped missing folder: {directory_name}")
+            continue
+
+        for absolute_path in directory.rglob("*.md"):
+            relative_path = absolute_path.relative_to(REPOSITORY_ROOT)
+
+            if relative_path in EXCLUDED_FILES:
+                continue
+
+            discovered.append(relative_path)
+
+    return sorted(
+        discovered,
+        key=lambda path: (
+            len(path.parts),
+            path.as_posix().lower(),
+        ),
+    )
+
+
+def humanise_name(value: str) -> str:
+    """Convert a repository file or folder name into a page title."""
+    cleaned = re.sub(r"^\d{2}-", "", value)
+    cleaned = cleaned.replace("_", " ").replace("-", " ")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+    special_terms = {
+        "abn": "ABN",
+        "acn": "ACN",
+        "crm": "CRM",
+        "cx": "CX",
+        "dq": "DQ",
+        "id": "ID",
+    }
+
+    words = []
+
+    for word in cleaned.split():
+        replacement = special_terms.get(word.lower())
+        words.append(replacement or word.capitalize())
+
+    return " ".join(words)
+
+
+def extract_page_title(
+    markdown_content: str,
+    file_path: Path,
+) -> str:
+    """Use the first Markdown H1 or fall back to the file name."""
+    match = FIRST_H1_PATTERN.search(markdown_content)
+
+    if match:
+        title = re.sub(r"\s+#+\s*$", "", match.group(1)).strip()
+
+        if title:
+            return title
+
+    return humanise_name(file_path.stem)
+
+
+def remove_first_h1(markdown_content: str) -> str:
+    """Remove the first Markdown H1 because Confluence supplies the title."""
+    return FIRST_H1_PATTERN.sub(
+        "",
+        markdown_content,
+        count=1,
+    ).lstrip()
+
+
+def parse_git_history(path: Path) -> list[CommitRecord]:
+    """Read newest-first Git history for one Markdown file."""
+    separator = "\x1f"
+
+    output = run_git_command(
+        [
+            "log",
+            "--follow",
+            f"--max-count={REVIEW_NOTES_LIMIT}",
+            f"--format=%cs{separator}%s{separator}%an{separator}%h",
+            "--",
+            path.as_posix(),
+        ]
+    )
+
+    records: list[CommitRecord] = []
+
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+
+        parts = line.split(separator)
+
+        if len(parts) != 4:
+            raise RuntimeError(
+                f"Unexpected Git-history output for {path}: {line}"
+            )
+
+        records.append(
+            CommitRecord(
+                date=parts[0].strip(),
+                subject=parts[1].strip(),
+                author=parts[2].strip(),
+                short_hash=parts[3].strip(),
+            )
+        )
+
+    return records
+
+
+def escape_markdown_table_value(value: str) -> str:
+    """Escape a value for a Markdown table."""
+    cleaned = " ".join(value.split())
+    return cleaned.replace("|", r"\|")
+
+
+def build_review_notes(
+    commits: Iterable[CommitRecord],
+) -> str:
+    """Build the managed Review notes Markdown section."""
+    lines = [
+        REVIEW_HEADING,
+        "",
+        START_MARKER,
+        "",
+        "| Date | Update | Updated by | Commit |",
+        "|---|---|---|---|",
+    ]
+
+    commit_rows = list(commits)
+
+    if commit_rows:
+        for commit in commit_rows:
+            lines.append(
+                "| "
+                f"{escape_markdown_table_value(commit.date)} | "
+                f"{escape_markdown_table_value(commit.subject)} | "
+                f"{escape_markdown_table_value(commit.author)} | "
+                f"`{escape_markdown_table_value(commit.short_hash)}` |"
+            )
+    else:
+        lines.append(
+            "| — | No committed file history found | — | — |"
+        )
+
+    lines.extend(
+        [
+            "",
+            END_MARKER,
+        ]
+    )
+
+    return "\n".join(lines)
+
+
+def inject_review_notes(
+    markdown_content: str,
+    commits: Iterable[CommitRecord],
+) -> str:
+    """Replace or append the managed Review notes section in memory."""
+    base_content = MANAGED_REVIEW_PATTERN.sub(
+        "",
+        markdown_content,
+    ).rstrip()
+
+    review_notes = build_review_notes(commits)
+
+    if base_content:
+        return f"{base_content}\n\n{review_notes}\n"
+
+    return f"{review_notes}\n"
+
+
+def convert_markdown_to_storage(
+    markdown_content: str,
+) -> str:
+    """Convert Markdown into Confluence storage-compatible HTML."""
+    return markdown.markdown(
+        markdown_content,
+        extensions=[
+            "tables",
+            "fenced_code",
+            "sane_lists",
+            "nl2br",
+        ],
+        output_format="html5",
+    )
+
+
+def build_folder_body(
+    folder_path: Path,
+    child_items: list[str],
+) -> str:
+    """Build a lightweight folder landing page."""
+    folder_title = humanise_name(folder_path.name)
+
+    child_list = "\n".join(
+        f"- {item}"
+        for item in child_items
+    )
+
+    markdown_content = f"""
+**Repository path:** `{folder_path.as_posix()}`
+
+This page groups the Customer Account Management documentation for **{folder_title}**.
+
+The source Markdown files remain authoritative. This Confluence hierarchy is an automatically published working view.
+
+## Included pages
+
+{child_list or "- No publishable child pages found."}
+""".strip()
+
+    return convert_markdown_to_storage(markdown_content)
+
+
+def folder_paths_for_files(
+    markdown_files: Iterable[Path],
+) -> list[Path]:
+    """Return all required repository folders in parent-first order."""
+    folders: set[Path] = set()
+
+    for file_path in markdown_files:
+        current = file_path.parent
+
+        while current != Path("."):
+            folders.add(current)
+            current = current.parent
+
+    return sorted(
+        folders,
+        key=lambda path: (
+            len(path.parts),
+            path.as_posix().lower(),
+        ),
+    )
+
+
+def direct_children_for_folder(
+    folder_path: Path,
+    markdown_files: Iterable[Path],
+    folder_paths: Iterable[Path],
+) -> list[str]:
+    """Return human-readable direct children for a folder page."""
+    children: set[str] = set()
+
+    for child_folder in folder_paths:
+        if child_folder.parent == folder_path:
+            children.add(humanise_name(child_folder.name))
+
+    for file_path in markdown_files:
+        if file_path.parent == folder_path:
+            content = (
+                REPOSITORY_ROOT / file_path
+            ).read_text(encoding="utf-8")
+
+            children.add(extract_page_title(content, file_path))
+
+    return sorted(children, key=str.lower)
+
+
+def publish_repository(
+    *,
+    client: ConfluenceClient,
+    configuration: Configuration,
+    markdown_files: list[Path],
+    dry_run: bool,
+) -> None:
+    """Publish folder pages followed by Markdown document pages."""
+    required_folders = folder_paths_for_files(markdown_files)
+    confluence_folder_ids: dict[Path, str] = {}
+
+    for folder_path in required_folders:
+        repository_parent = folder_path.parent
+
+        if repository_parent == Path("."):
+            parent_page_id = configuration.parent_page_id
+        else:
+            parent_page_id = confluence_folder_ids[repository_parent]
+
+        child_items = direct_children_for_folder(
+            folder_path,
+            markdown_files,
+            required_folders,
+        )
+
+        folder_page = client.create_or_update_page(
+            title=humanise_name(folder_path.name),
+            parent_id=parent_page_id,
+            body_html=build_folder_body(
+                folder_path,
+                child_items,
+            ),
+            dry_run=dry_run,
+        )
+
+        confluence_folder_ids[folder_path] = folder_page.page_id
+
+    for file_path in markdown_files:
+        absolute_path = REPOSITORY_ROOT / file_path
+        source_markdown = absolute_path.read_text(encoding="utf-8")
+
+        page_title = extract_page_title(
+            source_markdown,
+            file_path,
+        )
+
+        body_markdown = remove_first_h1(source_markdown)
+        git_history = parse_git_history(file_path)
+
+        body_markdown = inject_review_notes(
+            body_markdown,
+            git_history,
+        )
+
+        body_html = convert_markdown_to_storage(body_markdown)
+
+        parent_page_id = confluence_folder_ids[file_path.parent]
+
+        client.create_or_update_page(
+            title=page_title,
+            parent_id=parent_page_id,
+            body_html=body_html,
+            dry_run=dry_run,
+        )
+
+
+def main() -> int:
+    """Run the repository-to-Confluence publisher."""
+    arguments = parse_arguments()
+
+    try:
+        confirm_git_repository()
+        configuration = load_configuration()
+
+        markdown_files = discover_markdown_files(
+            arguments.folder
+        )
+
+        if not markdown_files:
+            print("No publishable Markdown files were found.")
+            return 0
+
+        print(
+            f"Discovered {len(markdown_files)} "
+            "publishable Markdown file(s)."
+        )
+
+        client = ConfluenceClient(configuration)
+        client.load_pages()
+
+        publish_repository(
+            client=client,
+            configuration=configuration,
+            markdown_files=markdown_files,
+            dry_run=arguments.dry_run,
+        )
+
+        action = "previewed" if arguments.dry_run else "published"
+
+        print(
+            f"Confluence migration complete: "
+            f"{len(markdown_files)} file(s) {action}."
+        )
+
+        return 0
+
+    except requests.RequestException as error:
+        print(
+            f"Network error while contacting Confluence: {error}",
+            file=sys.stderr,
+        )
+        return 1
+
+    except (
+        KeyError,
+        OSError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ) as error:
+        print(
+            f"Confluence publishing failed: {error}",
+            file=sys.stderr,
+        )
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
