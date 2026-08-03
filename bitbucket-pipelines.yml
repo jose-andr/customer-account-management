@@ -52,9 +52,25 @@ pipelines:
             - python3 scripts/generate-review-notes.py
             - git status --short
 
+    preview-confluence-demo:
+      - step:
+          name: Preview Customer Account Management Confluence demonstration
+          script:
+            - apk add --no-cache python3 py3-pip git
+            - python3 -m pip install --no-cache-dir --break-system-packages markdown requests pyyaml
+            - python3 scripts/publish-confluence-demo.py --dry-run
+
+    publish-confluence-demo:
+      - step:
+          name: Publish Customer Account Management Confluence demonstration
+          script:
+            - apk add --no-cache python3 py3-pip git
+            - python3 -m pip install --no-cache-dir --break-system-packages markdown requests pyyaml
+            - python3 scripts/publish-confluence-demo.py
+
     preview-confluence-publish:
       - step:
-          name: Preview Customer Account Management Confluence migration
+          name: Preview full Customer Account Management Confluence migration
           script:
             - apk add --no-cache python3 py3-pip git
             - python3 -m pip install --no-cache-dir --break-system-packages markdown requests pyyaml
@@ -62,7 +78,7 @@ pipelines:
 
     publish-confluence:
       - step:
-          name: Publish Customer Account Management documentation
+          name: Publish full Customer Account Management documentation
           script:
             - apk add --no-cache python3 py3-pip git
             - python3 -m pip install --no-cache-dir --break-system-packages markdown requests pyyaml
