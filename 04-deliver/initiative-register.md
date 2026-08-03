@@ -1,7 +1,7 @@
 # Initiative register
 
 Status: Draft  
-Owner: José Andrade  
+Owner: Josï¿½ Andrade  
 Last updated: 3 August 2026
 
 ## Purpose
