@@ -1,0 +1,33 @@
+name: Customer Account Management Confluence demonstration
+
+description: >
+  Publish a small, controlled subset of Customer Account Management
+  documentation to demonstrate repository-to-Confluence automation.
+
+parent_page_variable: CONFLUENCE_PARENT_PAGE_ID
+
+pages:
+  - path: 00-project-control/purpose-and-scope.md
+    order: 1
+    purpose: Establish the workstream purpose, boundaries and intended outcomes.
+
+  - path: 01-discover/existing-evidence-inventory.md
+    order: 2
+    purpose: Show the existing evidence base and known gaps.
+
+  - path: 01-discover/databricks-customer-data-quality-pilot-input.md
+    order: 3
+    purpose: Show how governed discovery inputs are prepared for Databricks analysis.
+
+  - path: 04-deliver/initiative-register.md
+    order: 4
+    purpose: Show how evidence and risks are converted into a prioritised delivery backlog.
+
+publishing_rules:
+  include_review_notes: true
+  remove_first_h1_from_body: true
+  update_existing_pages: true
+  create_missing_pages: true
+  publish_folder_pages: true
+  modify_source_markdown: false
+  preserve_manifest_order: true
