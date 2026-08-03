@@ -9,9 +9,9 @@ The publisher:
 - uses the first Markdown H1 as the Confluence page title;
 - removes that H1 from the rendered page body;
 - generates file-specific Git review notes in memory;
-- creates or updates pages using title and parent-page identity;
-- avoids modifying repository Markdown files; and
-- avoids duplicate pages on repeated runs.
+- creates or updates pages without modifying source Markdown;
+- avoids duplicate managed pages on repeated runs; and
+- resolves Confluence space-wide title collisions.
 
 Required environment variables:
 
@@ -21,11 +21,11 @@ Required environment variables:
     CONFLUENCE_USER_EMAIL
     CONFLUENCE_API_TOKEN
 
-Run from the repository root:
+Run:
 
     python3 scripts/publish-confluence.py
 
-Preview the publishing plan without changing Confluence:
+Preview without changing Confluence:
 
     python3 scripts/publish-confluence.py --dry-run
 
@@ -37,14 +37,13 @@ Publish one repository folder:
 from __future__ import annotations
 
 import argparse
-import html
 import os
 import re
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Iterable
 from urllib.parse import urljoin
 
 import markdown
@@ -65,12 +64,8 @@ PUBLISHABLE_DIRECTORIES = (
     "references",
 )
 
-EXCLUDED_FILES = {
-    Path("README.md"),
-}
-
-REVIEW_NOTES_LIMIT = int(os.getenv("REVIEW_NOTES_LIMIT", "25"))
 REQUEST_TIMEOUT_SECONDS = 30
+REVIEW_NOTES_LIMIT = int(os.getenv("REVIEW_NOTES_LIMIT", "25"))
 
 REVIEW_HEADING = "## Review notes"
 START_MARKER = "<!-- AUTO-REVIEW-NOTES:START -->"
@@ -129,17 +124,30 @@ class ConfluencePage:
 class ConfluenceClient:
     """Small client for the Confluence Cloud REST API v2."""
 
+    TITLE_PREFIX = "Customer Account Management —"
+
     def __init__(self, configuration: Configuration) -> None:
         self.configuration = configuration
+
         self.auth = HTTPBasicAuth(
             configuration.user_email,
             configuration.api_token,
         )
+
         self.headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
-        self.pages_by_identity: dict[tuple[str, str], ConfluencePage] = {}
+
+        self.pages_by_identity: dict[
+            tuple[str, str],
+            ConfluencePage,
+        ] = {}
+
+        self.pages_by_title: dict[
+            str,
+            list[ConfluencePage],
+        ] = {}
 
     def api_url(self, path: str) -> str:
         """Build a Confluence REST API v2 URL."""
@@ -166,11 +174,39 @@ class ConfluenceClient:
             f"{response.status_code}: {excerpt}"
         )
 
+    def register_page(self, page: ConfluencePage) -> None:
+        """Add or refresh a page in the local lookup indexes."""
+        identity = (page.parent_id, page.title)
+
+        previous_page = self.pages_by_identity.get(identity)
+        self.pages_by_identity[identity] = page
+
+        title_pages = self.pages_by_title.setdefault(
+            page.title,
+            [],
+        )
+
+        if previous_page is not None:
+            title_pages[:] = [
+                existing
+                for existing in title_pages
+                if existing.page_id != previous_page.page_id
+            ]
+
+        title_pages[:] = [
+            existing
+            for existing in title_pages
+            if existing.page_id != page.page_id
+        ]
+
+        title_pages.append(page)
+
     def load_pages(self) -> None:
         """Load current pages in the configured Confluence space."""
         url = self.api_url(
             f"spaces/{self.configuration.space_id}/pages"
         )
+
         params: dict[str, str | int] = {
             "limit": 250,
             "status": "current",
@@ -186,7 +222,11 @@ class ConfluenceClient:
                 auth=self.auth,
                 timeout=REQUEST_TIMEOUT_SECONDS,
             )
-            self.raise_for_error(response, "Loading Confluence pages")
+
+            self.raise_for_error(
+                response,
+                "Loading Confluence pages",
+            )
 
             payload = response.json()
 
@@ -194,7 +234,11 @@ class ConfluenceClient:
                 page_id = str(item.get("id", "")).strip()
                 title = str(item.get("title", "")).strip()
                 parent_id = str(item.get("parentId", "")).strip()
-                version_number = item.get("version", {}).get("number", 1)
+
+                version_number = item.get(
+                    "version",
+                    {},
+                ).get("number", 1)
 
                 if not page_id or not title:
                     continue
@@ -209,7 +253,7 @@ class ConfluenceClient:
                     version_number=version_number,
                 )
 
-                self.pages_by_identity[(parent_id, title)] = page
+                self.register_page(page)
                 loaded_count += 1
 
             next_link = payload.get("_links", {}).get("next")
@@ -227,7 +271,78 @@ class ConfluenceClient:
             else:
                 url = ""
 
-        print(f"Loaded {loaded_count} existing Confluence page(s).")
+        print(
+            f"Loaded {loaded_count} existing "
+            "Confluence page(s)."
+        )
+
+    def page_exists_under_parent(
+        self,
+        *,
+        parent_id: str,
+        title: str,
+    ) -> bool:
+        """Return whether the exact page identity already exists."""
+        return (parent_id, title) in self.pages_by_identity
+
+    def title_exists_in_space(self, title: str) -> bool:
+        """Return whether a title already exists anywhere in the space."""
+        return bool(self.pages_by_title.get(title))
+
+    def resolve_page_title(
+        self,
+        *,
+        desired_title: str,
+        parent_id: str,
+    ) -> str:
+        """Resolve a stable title that avoids space-wide collisions."""
+        if self.page_exists_under_parent(
+            parent_id=parent_id,
+            title=desired_title,
+        ):
+            return desired_title
+
+        if not self.title_exists_in_space(desired_title):
+            return desired_title
+
+        qualified_title = (
+            f"{self.TITLE_PREFIX} {desired_title}"
+        )
+
+        if self.page_exists_under_parent(
+            parent_id=parent_id,
+            title=qualified_title,
+        ):
+            return qualified_title
+
+        if not self.title_exists_in_space(qualified_title):
+            print(
+                "Title collision resolved: "
+                f"'{desired_title}' → '{qualified_title}'"
+            )
+            return qualified_title
+
+        suffix = 2
+
+        while True:
+            candidate_title = (
+                f"{qualified_title} ({suffix})"
+            )
+
+            if self.page_exists_under_parent(
+                parent_id=parent_id,
+                title=candidate_title,
+            ):
+                return candidate_title
+
+            if not self.title_exists_in_space(candidate_title):
+                print(
+                    "Title collision resolved: "
+                    f"'{desired_title}' → '{candidate_title}'"
+                )
+                return candidate_title
+
+            suffix += 1
 
     def create_page(
         self,
@@ -236,7 +351,7 @@ class ConfluenceClient:
         parent_id: str,
         body_html: str,
     ) -> ConfluencePage:
-        """Create a published Confluence page."""
+        """Create a Confluence page."""
         payload = {
             "spaceId": self.configuration.space_id,
             "status": "current",
@@ -255,7 +370,11 @@ class ConfluenceClient:
             auth=self.auth,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
-        self.raise_for_error(response, f"Creating page '{title}'")
+
+        self.raise_for_error(
+            response,
+            f"Creating page '{title}'",
+        )
 
         result = response.json()
 
@@ -264,14 +383,47 @@ class ConfluenceClient:
             title=title,
             parent_id=parent_id,
             version_number=int(
-                result.get("version", {}).get("number", 1)
+                result.get(
+                    "version",
+                    {},
+                ).get("number", 1)
             ),
         )
 
-        self.pages_by_identity[(parent_id, title)] = page
+        self.register_page(page)
 
         print(f"Created: {title}")
         return page
+
+    def get_current_page_version(
+        self,
+        page_id: str,
+    ) -> int:
+        """Retrieve the current Confluence page version."""
+        response = requests.get(
+            self.api_url(f"pages/{page_id}"),
+            headers=self.headers,
+            auth=self.auth,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+
+        self.raise_for_error(
+            response,
+            f"Retrieving page version for '{page_id}'",
+        )
+
+        payload = response.json()
+        version_number = payload.get(
+            "version",
+            {},
+        ).get("number")
+
+        if not isinstance(version_number, int):
+            raise RuntimeError(
+                f"Page '{page_id}' did not return a valid version number."
+            )
+
+        return version_number
 
     def update_page(
         self,
@@ -279,8 +431,12 @@ class ConfluenceClient:
         page: ConfluencePage,
         body_html: str,
     ) -> ConfluencePage:
-        """Update an existing published Confluence page."""
-        next_version = page.version_number + 1
+        """Update an existing Confluence page."""
+        current_version = self.get_current_page_version(
+            page.page_id
+        )
+
+        next_version = current_version + 1
 
         payload = {
             "id": page.page_id,
@@ -294,7 +450,10 @@ class ConfluenceClient:
             },
             "version": {
                 "number": next_version,
-                "message": "Published from the Customer Account Management repository",
+                "message": (
+                    "Published from the Customer Account "
+                    "Management repository"
+                ),
                 "minorEdit": True,
             },
         }
@@ -306,6 +465,7 @@ class ConfluenceClient:
             auth=self.auth,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
+
         self.raise_for_error(
             response,
             f"Updating page '{page.title}'",
@@ -318,9 +478,7 @@ class ConfluenceClient:
             version_number=next_version,
         )
 
-        self.pages_by_identity[
-            (updated_page.parent_id, updated_page.title)
-        ] = updated_page
+        self.register_page(updated_page)
 
         print(f"Updated: {page.title}")
         return updated_page
@@ -333,24 +491,39 @@ class ConfluenceClient:
         body_html: str,
         dry_run: bool,
     ) -> ConfluencePage:
-        """Create or update a page identified by title and parent."""
+        """Create or update a collision-safe Confluence page."""
+        resolved_title = self.resolve_page_title(
+            desired_title=title,
+            parent_id=parent_id,
+        )
+
         existing_page = self.pages_by_identity.get(
-            (parent_id, title)
+            (parent_id, resolved_title)
         )
 
         if dry_run:
-            action = "Would update" if existing_page else "Would create"
-            print(f"{action}: {title}")
+            action = (
+                "Would update"
+                if existing_page
+                else "Would create"
+            )
+
+            print(f"{action}: {resolved_title}")
 
             if existing_page:
                 return existing_page
 
-            return ConfluencePage(
-                page_id=f"dry-run:{parent_id}:{title}",
-                title=title,
+            dry_run_page = ConfluencePage(
+                page_id=(
+                    f"dry-run:{parent_id}:{resolved_title}"
+                ),
+                title=resolved_title,
                 parent_id=parent_id,
                 version_number=1,
             )
+
+            self.register_page(dry_run_page)
+            return dry_run_page
 
         if existing_page:
             return self.update_page(
@@ -359,7 +532,7 @@ class ConfluenceClient:
             )
 
         return self.create_page(
-            title=title,
+            title=resolved_title,
             parent_id=parent_id,
             body_html=body_html,
         )
@@ -433,7 +606,10 @@ def run_git_command(arguments: list[str]) -> str:
     )
 
     if completed.returncode != 0:
-        message = completed.stderr.strip() or completed.stdout.strip()
+        message = (
+            completed.stderr.strip()
+            or completed.stdout.strip()
+        )
 
         raise RuntimeError(
             f"Git command failed: git {' '.join(arguments)}\n"
@@ -444,7 +620,7 @@ def run_git_command(arguments: list[str]) -> str:
 
 
 def confirm_git_repository() -> None:
-    """Confirm full Git history is available."""
+    """Confirm the script is running in a Git working tree."""
     result = run_git_command(
         ["rev-parse", "--is-inside-work-tree"]
     ).strip()
@@ -475,10 +651,9 @@ def discover_markdown_files(
             continue
 
         for absolute_path in directory.rglob("*.md"):
-            relative_path = absolute_path.relative_to(REPOSITORY_ROOT)
-
-            if relative_path in EXCLUDED_FILES:
-                continue
+            relative_path = absolute_path.relative_to(
+                REPOSITORY_ROOT
+            )
 
             discovered.append(relative_path)
 
@@ -506,7 +681,7 @@ def humanise_name(value: str) -> str:
         "id": "ID",
     }
 
-    words = []
+    words: list[str] = []
 
     for word in cleaned.split():
         replacement = special_terms.get(word.lower())
@@ -523,7 +698,11 @@ def extract_page_title(
     match = FIRST_H1_PATTERN.search(markdown_content)
 
     if match:
-        title = re.sub(r"\s+#+\s*$", "", match.group(1)).strip()
+        title = re.sub(
+            r"\s+#+\s*$",
+            "",
+            match.group(1),
+        ).strip()
 
         if title:
             return title
@@ -532,7 +711,7 @@ def extract_page_title(
 
 
 def remove_first_h1(markdown_content: str) -> str:
-    """Remove the first Markdown H1 because Confluence supplies the title."""
+    """Remove the first H1 because Confluence provides the page title."""
     return FIRST_H1_PATTERN.sub(
         "",
         markdown_content,
@@ -683,13 +862,15 @@ The source Markdown files remain authoritative. This Confluence hierarchy is an 
 {child_list or "- No publishable child pages found."}
 """.strip()
 
-    return convert_markdown_to_storage(markdown_content)
+    return convert_markdown_to_storage(
+        markdown_content
+    )
 
 
 def folder_paths_for_files(
     markdown_files: Iterable[Path],
 ) -> list[Path]:
-    """Return all required repository folders in parent-first order."""
+    """Return required repository folders in parent-first order."""
     folders: set[Path] = set()
 
     for file_path in markdown_files:
@@ -718,17 +899,29 @@ def direct_children_for_folder(
 
     for child_folder in folder_paths:
         if child_folder.parent == folder_path:
-            children.add(humanise_name(child_folder.name))
+            children.add(
+                humanise_name(child_folder.name)
+            )
 
     for file_path in markdown_files:
-        if file_path.parent == folder_path:
-            content = (
-                REPOSITORY_ROOT / file_path
-            ).read_text(encoding="utf-8")
+        if file_path.parent != folder_path:
+            continue
 
-            children.add(extract_page_title(content, file_path))
+        content = (
+            REPOSITORY_ROOT / file_path
+        ).read_text(encoding="utf-8")
 
-    return sorted(children, key=str.lower)
+        children.add(
+            extract_page_title(
+                content,
+                file_path,
+            )
+        )
+
+    return sorted(
+        children,
+        key=str.lower,
+    )
 
 
 def publish_repository(
@@ -739,7 +932,10 @@ def publish_repository(
     dry_run: bool,
 ) -> None:
     """Publish folder pages followed by Markdown document pages."""
-    required_folders = folder_paths_for_files(markdown_files)
+    required_folders = folder_paths_for_files(
+        markdown_files
+    )
+
     confluence_folder_ids: dict[Path, str] = {}
 
     for folder_path in required_folders:
@@ -748,7 +944,9 @@ def publish_repository(
         if repository_parent == Path("."):
             parent_page_id = configuration.parent_page_id
         else:
-            parent_page_id = confluence_folder_ids[repository_parent]
+            parent_page_id = confluence_folder_ids[
+                repository_parent
+            ]
 
         child_items = direct_children_for_folder(
             folder_path,
@@ -766,28 +964,42 @@ def publish_repository(
             dry_run=dry_run,
         )
 
-        confluence_folder_ids[folder_path] = folder_page.page_id
+        confluence_folder_ids[
+            folder_path
+        ] = folder_page.page_id
 
     for file_path in markdown_files:
         absolute_path = REPOSITORY_ROOT / file_path
-        source_markdown = absolute_path.read_text(encoding="utf-8")
+
+        source_markdown = absolute_path.read_text(
+            encoding="utf-8"
+        )
 
         page_title = extract_page_title(
             source_markdown,
             file_path,
         )
 
-        body_markdown = remove_first_h1(source_markdown)
-        git_history = parse_git_history(file_path)
+        body_markdown = remove_first_h1(
+            source_markdown
+        )
+
+        git_history = parse_git_history(
+            file_path
+        )
 
         body_markdown = inject_review_notes(
             body_markdown,
             git_history,
         )
 
-        body_html = convert_markdown_to_storage(body_markdown)
+        body_html = convert_markdown_to_storage(
+            body_markdown
+        )
 
-        parent_page_id = confluence_folder_ids[file_path.parent]
+        parent_page_id = confluence_folder_ids[
+            file_path.parent
+        ]
 
         client.create_or_update_page(
             title=page_title,
@@ -803,6 +1015,7 @@ def main() -> int:
 
     try:
         confirm_git_repository()
+
         configuration = load_configuration()
 
         markdown_files = discover_markdown_files(
@@ -828,10 +1041,14 @@ def main() -> int:
             dry_run=arguments.dry_run,
         )
 
-        action = "previewed" if arguments.dry_run else "published"
+        action = (
+            "previewed"
+            if arguments.dry_run
+            else "published"
+        )
 
         print(
-            f"Confluence migration complete: "
+            "Confluence migration complete: "
             f"{len(markdown_files)} file(s) {action}."
         )
 
