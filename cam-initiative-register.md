@@ -1,4 +1,4 @@
-# Customer Account Management initiative register
+# CAM initiative register
 
 Status: Draft  
 Owner: To be confirmed  
