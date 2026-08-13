@@ -29,7 +29,7 @@ Expected managed Confluence structure:
     04 Deliver
     05 Evaluation and learning
     06 Decisions
-    References
+    07 References
 
 The repository may contain:
 
@@ -110,7 +110,7 @@ TOP_LEVEL_FOLDER_TITLES = {
     "04-deliver": "04 Deliver",
     "05-evaluation-and-learning": "05 Evaluation and learning",
     "06-decisions": "06 Decisions",
-    "references": "References",
+    "references": "07 References",
 }
 
 REQUEST_TIMEOUT_SECONDS = 30
@@ -264,10 +264,7 @@ class ConfluenceClient:
             title_pages[:] = [
                 existing
                 for existing in title_pages
-                if (
-                    existing.page_id
-                    != previous_page.page_id
-                )
+                if existing.page_id != previous_page.page_id
             ]
 
         title_pages[:] = [
@@ -475,9 +472,7 @@ class ConfluenceClient:
     ) -> ConfluencePage:
         """Create a Confluence page."""
         payload = {
-            "spaceId": (
-                self.configuration.space_id
-            ),
+            "spaceId": self.configuration.space_id,
             "status": "current",
             "title": title,
             "parentId": parent_id,
@@ -584,9 +579,7 @@ class ConfluenceClient:
             "id": page.page_id,
             "status": "current",
             "title": page.title,
-            "spaceId": (
-                self.configuration.space_id
-            ),
+            "spaceId": self.configuration.space_id,
             "parentId": page.parent_id,
             "body": {
                 "representation": "storage",
