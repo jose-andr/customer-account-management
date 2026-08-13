@@ -1,4 +1,4 @@
-# Constraints and boundaries
+# Problem boundaries
 
 Status: Draft
 Owner: José Andrade
@@ -6,11 +6,9 @@ Last updated: 13 August 2026
 
 ## Purpose
 
-Define the boundaries and constraints that must be considered when assessing the viability of Customer Account Management improvements.
+Define the boundaries that shape Customer Account Management viability, prioritisation and future investment decisions.
 
-These constraints are not reasons to avoid change.
-
-They ensure that opportunities are assessed against the actual organisational environment rather than an unconstrained future-state concept.
+These boundaries help ensure that opportunities are assessed against the actual organisational context rather than an unconstrained future-state concept.
 
 ## North star
 
@@ -18,12 +16,13 @@ They ensure that opportunities are assessed against the actual organisational en
 
 ## Boundary principle
 
-A viable improvement must work across four conditions:
+A viable improvement should:
 
-1. it addresses a meaningful customer, operational or risk problem;
-2. it can operate within applicable organisational controls;
-3. its dependencies and implementation complexity are understood; and
-4. the expected value is proportionate to the effort and investment required.
+1. address a meaningful customer, operational or risk problem;
+2. work within applicable organisational controls;
+3. have understood dependencies and implementation constraints;
+4. create value proportionate to the effort and investment required; and
+5. avoid assuming a specific technical solution before the capability need is clear.
 
 ## In scope
 
@@ -32,7 +31,7 @@ The Define phase may consider improvements to:
 * customer identity and account relationships;
 * duplicate prevention;
 * duplicate identification and safe resolution;
-* Customer Account data quality;
+* customer-account data quality;
 * Service Account and Person Account relationships;
 * customer contact-data quality;
 * sensitive customer statuses;
@@ -72,9 +71,7 @@ These may become future options if evidence supports them.
 
 ## Solution neutrality
 
-The work should define the required capability before selecting the implementation.
-
-For example:
+The problem should be defined before selecting the implementation.
 
 | Need                                | Do not automatically translate it into      |
 | ----------------------------------- | ------------------------------------------- |
@@ -124,7 +121,7 @@ Possible complexities include:
 
 * multiple records associated with one person;
 * shared contact details;
-* statutory and non-statutory account relationships;
+* statutory and non-statutory relationships;
 * representatives;
 * organisations;
 * household relationships;
@@ -325,7 +322,6 @@ Define should not produce detailed implementation plans before an opportunity ha
 
 Progression should follow:
 
-```text
 Evidence
 → Problem definition
 → Value hypothesis
@@ -335,7 +331,6 @@ Evidence
 → Delivery decision
 → Implementation
 → Evaluation
-```
 
 Skipping directly from a reported issue to implementation increases the risk of solving the wrong problem.
 
@@ -382,8 +377,6 @@ For each external example, distinguish:
 Do not conclude that a practice is viable locally simply because another organisation uses it.
 
 ## Constraint register
-
-Use this table during viability assessment.
 
 | Constraint                                      | Why it matters                                                           | Opportunities affected                | Evidence status                               | Decision implication                                   |
 | ----------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------- | --------------------------------------------- | ------------------------------------------------------ |
