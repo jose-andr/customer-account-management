@@ -129,10 +129,10 @@ April 2025
 
 - `#291605` — Plauti issue logged, 2 April 2025
 - `#291629` — duplicate statutory and non-statutory accounts, 2 April 2025
-- related work concerning duplicate detection and merge configuration
+- `SDO-495` — uplift to UI logic for detecting duplicate accounts
+- `SDO-934` — Plauti configuration rules for merging identified duplicates
 
-The source table refers to additional duplicate-management work, but the identifiers were not preserved clearly enough in the uploaded CSV to record them reliably.
-
+TThe source table refers to additional duplicate-management work, but the identifiers were not preserved clearly enough in the uploaded CSV to record them reliably.
 ### Reported issue
 
 Plauti may not allow statutory customers to be merged with non-statutory customers where a Service Account relationship exists.
