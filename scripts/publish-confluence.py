@@ -431,7 +431,12 @@ class ConfluenceClient:
         ] = {}
 
     def api_url(self, path: str) -> str:
-        return f"{self.base_url}/api/v2/{path.lstrip('/')}"
+    base = self.base_url.rstrip("/")
+
+    if base.endswith("/wiki"):
+        return f"{base}/api/v2/{path.lstrip('/')}"
+
+    return f"{base}/wiki/api/v2/{path.lstrip('/')}"
 
     def request(
         self,
