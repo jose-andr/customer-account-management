@@ -3,8 +3,10 @@
 
 The publisher:
 
-- publishes selected root-level CAM control pages directly beneath the
-  configured Confluence parent page;
+- preserves stakeholder-owned Confluence pages that are not explicitly
+  configured for automated publication;
+- publishes selected repository root pages directly beneath the configured
+  Customer Account Management parent page;
 - discovers approved repository documentation folders;
 - creates matching Confluence folder pages;
 - preserves the numbered taxonomy for top-level repository folders;
@@ -13,14 +15,13 @@ The publisher:
 - removes that H1 from the rendered page body;
 - generates file-specific Git review notes in memory;
 - creates or updates pages without modifying source Markdown;
-- avoids duplicate managed pages on repeated runs;
-- resolves Confluence space-wide title collisions using a CAM prefix; and
-- preserves unrelated Confluence pages elsewhere in the space.
+- avoids duplicate managed pages on repeated runs; and
+- resolves Confluence space-wide title collisions using a CAM prefix.
 
-Expected top-level Confluence structure:
+Expected managed Confluence structure:
 
-    Open issues
-    CAM initiative register
+    Open issues                    [stakeholder-owned; not automated]
+    CAM initiative register       [repository-managed]
     00 Project control
     01 Discover
     02 Define
@@ -29,6 +30,16 @@ Expected top-level Confluence structure:
     05 Evaluation and learning
     06 Decisions
     References
+
+The repository may contain:
+
+    open-issues.md
+
+as a preserved reference copy.
+
+That file is deliberately excluded from automated Confluence publishing so
+the existing stakeholder-owned Confluence page retains its ownership,
+history and manual control.
 
 Required environment variables:
 
@@ -70,18 +81,16 @@ from requests.auth import HTTPBasicAuth
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
-# Root-level repository pages that should appear directly beneath the
-# configured Customer Account Management Confluence parent page.
+# Root-level repository pages managed by the publisher.
 #
-# Order here is publication order.
+# IMPORTANT:
+# open-issues.md is intentionally NOT included here.
+# The corresponding Confluence page is stakeholder-owned and must remain
+# untouched by repository automation.
 ROOT_PAGES = (
-    Path("open-issues.md"),
     Path("cam-initiative-register.md"),
 )
 
-# Repository documentation folders included in Confluence publishing.
-#
-# Order here is the intended top-level Confluence taxonomy.
 PUBLISHABLE_DIRECTORIES = (
     "00-project-control",
     "01-discover",
@@ -93,10 +102,6 @@ PUBLISHABLE_DIRECTORIES = (
     "references",
 )
 
-# Explicit Confluence titles for top-level repository folders.
-#
-# Numeric prefixes are deliberately retained so the intended 4D/project
-# sequence remains obvious and sortable in Confluence.
 TOP_LEVEL_FOLDER_TITLES = {
     "00-project-control": "00 Project control",
     "01-discover": "01 Discover",
@@ -815,7 +820,7 @@ def confirm_git_repository() -> None:
 
 
 def discover_root_pages() -> list[Path]:
-    """Return configured root pages in explicit publication order."""
+    """Return configured repository-managed root pages."""
     discovered: list[Path] = []
 
     for file_path in ROOT_PAGES:
@@ -859,8 +864,6 @@ def discover_markdown_files(
 
     discovered: list[Path] = []
 
-    # Iterate through PUBLISHABLE_DIRECTORIES in the configured order.
-    # Sort only within each top-level folder.
     for directory_name in directories:
         directory = (
             REPOSITORY_ROOT
@@ -949,13 +952,15 @@ def humanise_name(
             or word.capitalize()
         )
 
-    return " ".join(words)
+    return " ".join(
+        words
+    )
 
 
 def top_level_folder_title(
     folder_name: str,
 ) -> str:
-    """Return the controlled Confluence title for a top-level folder."""
+    """Return the controlled title for a top-level folder."""
     configured_title = (
         TOP_LEVEL_FOLDER_TITLES.get(
             folder_name
@@ -1231,7 +1236,9 @@ def folder_paths_for_files(
     def folder_sort_key(
         path: Path,
     ) -> tuple[int, int, str]:
-        top_level_name = path.parts[0]
+        top_level_name = (
+            path.parts[0]
+        )
 
         return (
             top_level_order.get(
@@ -1299,7 +1306,7 @@ def publish_markdown_file(
     parent_page_id: str,
     dry_run: bool,
 ) -> ConfluencePage:
-    """Publish one Markdown file beneath the supplied Confluence parent."""
+    """Publish one repository-managed Markdown file."""
     absolute_path = (
         REPOSITORY_ROOT
         / file_path
@@ -1346,7 +1353,7 @@ def publish_root_pages(
     root_pages: list[Path],
     dry_run: bool,
 ) -> None:
-    """Publish configured root pages directly beneath the CAM parent."""
+    """Publish repository-managed root pages beneath the CAM parent."""
     for file_path in root_pages:
         publish_markdown_file(
             client=client,
@@ -1365,7 +1372,7 @@ def publish_repository(
     markdown_files: list[Path],
     dry_run: bool,
 ) -> None:
-    """Publish folder pages followed by their Markdown pages."""
+    """Publish folder pages followed by their Markdown document pages."""
     required_folders = folder_paths_for_files(
         markdown_files
     )
@@ -1443,8 +1450,6 @@ def main() -> int:
             load_configuration()
         )
 
-        # Root pages are included only during a full publication.
-        # A --folder run remains scoped to that folder.
         if arguments.folder:
             root_pages: list[Path] = []
         else:
@@ -1479,9 +1484,14 @@ def main() -> int:
             "publishable Markdown file(s)."
         )
 
+        print(
+            "Stakeholder-owned page excluded from "
+            "automation: open-issues.md"
+        )
+
         if root_pages:
             print(
-                "Root pages: "
+                "Repository-managed root pages: "
                 + ", ".join(
                     path.as_posix()
                     for path in root_pages
@@ -1494,8 +1504,6 @@ def main() -> int:
 
         client.load_pages()
 
-        # Root control pages are deliberately published first so they
-        # appear before the numbered project taxonomy on a fresh publish.
         if root_pages:
             publish_root_pages(
                 client=client,
