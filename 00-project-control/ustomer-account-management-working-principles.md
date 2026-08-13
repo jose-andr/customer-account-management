@@ -1,5 +1,4 @@
-# Ways of working
-
+# Customer Account Management working principles
 Status: Draft  
 Owner: José Andrade  
 Last updated: 29 July 2026
