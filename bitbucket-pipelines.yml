@@ -83,3 +83,14 @@ pipelines:
             - apk add --no-cache python3 py3-pip git
             - python3 -m pip install --no-cache-dir --break-system-packages markdown requests pyyaml
             - python3 scripts/publish-confluence.py
+
+    sync-to-github:
+      - step:
+          name: Sync Bitbucket main to GitHub
+          script:
+            - apk add --no-cache git
+            - git config user.name "Bitbucket Pipeline"
+            - git config user.email "noreply@bitbucket.org"
+            - git remote remove github 2>/dev/null || true
+            - git remote add github "https://x-access-token:${GITHUB_SYNC_TOKEN}@github.com/jose-andr/customer-account-management.git"
+            - git push github main:main
