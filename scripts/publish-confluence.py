@@ -64,6 +64,24 @@ PUBLISHABLE_DIRECTORIES = (
     "references",
 )
 
+ROOT_PAGES = (
+    Path("open-issues.md"),
+    Path("cam-initiative-register.md"),
+)
+
+FOLDER_TITLES = {
+    "00-project-control": "00 Project control",
+    "01-discover": "01 Discover",
+    "02-define": "02 Define",
+    "03-design": "03 Design",
+    "04-deliver": "04 Deliver",
+    "05-evaluation-and-learning": "05 Evaluation and learning",
+    "06-decisions": "06 Decisions",
+    "references": "References",
+}
+
+TITLE_COLLISION_PREFIX = "CAM — "
+
 REQUEST_TIMEOUT_SECONDS = 30
 REVIEW_NOTES_LIMIT = int(os.getenv("REVIEW_NOTES_LIMIT", "25"))
 
