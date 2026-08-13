@@ -430,7 +430,7 @@ class ConfluenceClient:
             ConfluencePage,
         ] = {}
 
-    def api_url(self, path: str) -> str:
+def api_url(self, path: str) -> str:
     base = self.base_url.rstrip("/")
 
     if base.endswith("/wiki"):
